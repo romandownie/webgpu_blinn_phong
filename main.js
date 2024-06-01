@@ -1,7 +1,7 @@
-
-
 import vertWGSL from './vert.js';
 import fragWGSL from './frag.js';
+
+// TODO: put things in clip space in the shader so that I can see things instead of with world space, (standard mvp matrix stuff)
 
 const canvas = document.querySelector('canvas');
 const adapter = await navigator.gpu.requestAdapter();
@@ -26,6 +26,18 @@ const pipeline = device.createRenderPipeline({
     module: device.createShaderModule({
       code: vertWGSL,
     }),
+    buffers: [
+      {
+        arrayStride: 4 * 4, // 4 bytes for each float
+        attributes: [
+          {
+            shaderLocation: 0,
+            offset: 0,
+            format: 'float32x4', // vec4f 
+          },
+        ],
+      },
+    ],
   },
   fragment: {
     module: device.createShaderModule({
@@ -41,6 +53,34 @@ const pipeline = device.createRenderPipeline({
     topology: 'triangle-list',
   },
 });
+
+// Vertex buffer data
+const vertexBufferData = new Float32Array([
+  // Floor quad
+  // 552.8, 0.0, 0.0, 1.0,
+  // 0.0, 0.0, 0.0, 1.0,
+  // 0.0, 0.0, 559.2, 1.0,
+
+  // 552.8, 0.0, 0.0, 1.0,
+  // 0.0, 0.0, 559.2, 1.0,
+  // 549.6, 0.0, 559.2, 1.0,
+
+  // test triangle and filler so it compiles
+  -0.5, -0.5, 0.0, 1.0,
+   0.5, -0.5, 0.0, 1.0,
+   0.0,  0.5, 0.0, 1.0,
+
+   -0.5, -0.5, 0.0, 1.0,
+   0.5, -0.5, 0.0, 1.0,
+   0.0,  0.5, 0.0, 1.0,
+]);
+
+const vertexBuffer = device.createBuffer({
+  label: "vertex data buffer",
+  size: vertexBufferData.byteLength,
+  usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(vertexBuffer, 0, vertexBufferData);
 
 function frame() {
   const commandEncoder = device.createCommandEncoder();
@@ -59,7 +99,8 @@ function frame() {
 
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
-  passEncoder.draw(3);
+  passEncoder.setVertexBuffer(0, vertexBuffer);
+  passEncoder.draw(6); // Drawing 6 vertices for now
   passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);
