@@ -1,5 +1,6 @@
 import vertWGSL from './vert.js';
 import fragWGSL from './frag.js';
+import mat4 from './mat4.js';
 
 // TODO: put things in clip space in the shader so that I can see things instead of with world space, (standard mvp matrix stuff)
 
@@ -53,6 +54,14 @@ const pipeline = device.createRenderPipeline({
     topology: 'triangle-list',
   },
 });
+
+// camera and light data
+var camera = new Float32Array([
+  278, 273, -800, 0.0,
+]);
+const lightPos = [
+  343.0, 548.8, 227.0, 0.0,
+];
 
 // Vertex buffer data
 const vertexBufferData = new Float32Array([
