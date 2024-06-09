@@ -1,6 +1,9 @@
 import vertWGSL from './vert.js';
 import fragWGSL from './frag.js';
-//import {vec3, mat4} from 'wgpu-matrix';
+import {
+  vec3,
+  mat4,
+} from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 
 
 // TODO: put things in clip space in the shader so that I can see things instead of with world space, (standard mvp matrix stuff)
@@ -60,13 +63,32 @@ const pipeline = device.createRenderPipeline({
 // camera and light data
 var cameraPos = new Float32Array([
   //278, 273, -800, 0.0,
-  0, 20, -20, 0, //just up a bit and back
+  0, 20, -20, //just up a bit and back
 ]);
-//var camTest = mat4.create();
-//console.log(camTest);
+
 var lookAtPoint = new Float32Array([
-  0, 0, 0, 0,
+  0, 0, 0,
 ]);
+
+// TODO could try mat4.lookAT();
+const camera = mat4.lookAt( //makes a view matrix
+  cameraPos,
+  lookAtPoint,
+  [0, 1, 0],
+);
+console.log(camera);
+const perspective =  mat4.perspective(
+  Math.PI/2.0,
+  1,
+  1.0,
+  2000,
+);
+console.log(perspective);
+//const view = mat4.inverse(camera);
+const vp = mat4.multiply(perspective, camera);
+console.log(vp);
+
+
 const lightPos = [
   343.0, 548.8, 227.0, 0.0,
 ];
@@ -83,9 +105,9 @@ const vertexBufferData = new Float32Array([
   // 549.6, 0.0, 559.2, 1.0,
 
   // test triangle and filler so it compiles
-  -0.5, -0.5, 0.0, 1.0,
-   0.5, -0.5, 0.0, 1.0,
-   0.0,  0.5, 0.0, 1.0,
+  // -0.5, -0.5, 0.0, 1.0,
+  //  0.5, -0.5, 0.0, 1.0,
+  //  0.0,  0.5, 0.0, 1.0,
 
    //test floor quad
    -10, 0, -10.0, 1.0,
@@ -103,6 +125,20 @@ const vertexBuffer = device.createBuffer({
   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 });
 device.queue.writeBuffer(vertexBuffer, 0, vertexBufferData);
+
+const vpBuffer = device.createBuffer({
+  label: "vertex data buffer",
+  size: vp.byteLength,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(vpBuffer, 0, vp);
+
+const bindGroup = device.createBindGroup({
+  layout: pipeline.getBindGroupLayout(0),
+  entries: [
+    {binding: 0, resource: {buffer: vpBuffer}},
+  ],
+});
 
 function frame() {
   const commandEncoder = device.createCommandEncoder();
@@ -122,6 +158,7 @@ function frame() {
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setVertexBuffer(0, vertexBuffer);
+  passEncoder.setBindGroup(0, bindGroup);
   passEncoder.draw(6); // Drawing 6 vertices for now
   passEncoder.end();
 
