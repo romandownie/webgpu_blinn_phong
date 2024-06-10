@@ -25,6 +25,8 @@ let wDown = false;
 let aDown = false;
 let sDown = false;
 let dDown = false;
+let lookAtPointTheta = Math.PI/2.0;
+let lookAtPointPhi = Math.PI/2.0;
  // collect input from keyboard
 window.addEventListener(
   "keydown",
@@ -239,26 +241,40 @@ function frame() {
   // handle keyboard input
   if (wDown) {
     vec3.add(forwardVector, cameraPos, cameraPos);
-    vec3.add(forwardVector, lookAtPoint, lookAtPoint);
+    //vec3.add(forwardVector, lookAtPoint, lookAtPoint);
     //console.log(camera);
   }
   if (aDown) {
     vec3.add(rightVector, cameraPos, cameraPos);
-    vec3.add(rightVector, lookAtPoint, lookAtPoint);
+    //vec3.add(rightVector, lookAtPoint, lookAtPoint);
     //console.log(camera);
   }
   if (sDown) {
     vec3.subtract(cameraPos, forwardVector, cameraPos);
-    vec3.subtract(lookAtPoint, forwardVector, lookAtPoint);
+    //vec3.subtract(lookAtPoint, forwardVector, lookAtPoint);
     //console.log(camera);
   }
   if (dDown) {
     vec3.add(vec3.negate(rightVector), cameraPos, cameraPos);
-    vec3.add(vec3.negate(rightVector), lookAtPoint, lookAtPoint);
+    //vec3.add(vec3.negate(rightVector), lookAtPoint, lookAtPoint);
     //console.log(camera);
   }
 
   // handle mouse input
+
+  //theta 0 -> 2PI, phi 0 -> PI, technically rho is involved but it's one here x=ρsinϕcosθ y=ρcosϕ z=ρsinϕsinθ
+  // 0 is up, pi is down
+  //lookAtPointTheta += 0.003;
+  //lookAtPointPhi += 0.003;
+  lookAtPointTheta = lookAtPointTheta % (Math.PI*2);
+  lookAtPointPhi = Math.min(lookAtPointPhi, Math.PI);
+  lookAtPointPhi = Math.max(lookAtPointPhi, 0);
+  //console.log(lookAtPointTheta);
+  //lookAtPointPhi = Math.PI/13;
+  let tempVec =vec3.normalize([Math.sin(lookAtPointPhi)*Math.cos(lookAtPointTheta), Math.cos(lookAtPointPhi), Math.sin(lookAtPointPhi)*Math.sin(lookAtPointTheta)]);
+  vec3.add(cameraPos, (tempVec), lookAtPoint);
+  //console.log((tempVec));
+  //console.log(lookAtPoint);
 
 
   //update matrix and send to buffer
