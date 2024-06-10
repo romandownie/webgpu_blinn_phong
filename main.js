@@ -6,7 +6,7 @@ import {
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 
 
-// add ability to move camera next
+// TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, also base things off of deltaT so that framerate isn't a factor, also make it so you have to click
 // also need to add color and other material properties and light uniforms 
 
 const canvas = document.querySelector('canvas');
@@ -27,6 +27,7 @@ let sDown = false;
 let dDown = false;
 let lookAtPointTheta = Math.PI/2.0;
 let lookAtPointPhi = Math.PI/2.0;
+let mSensitivity = 0.003;
  // collect input from keyboard
 window.addEventListener(
   "keydown",
@@ -104,6 +105,14 @@ window.addEventListener(
   },
   true,
 );
+// mouse listener
+function mouseMovement(event) {
+  //console.log(event.movementX);
+  //console.log(event.movementY);
+  lookAtPointPhi += event.movementY*mSensitivity;
+  lookAtPointTheta += event.movementX*mSensitivity;
+}
+document.addEventListener("mousemove", mouseMovement);
 
 context.configure({
   device,
