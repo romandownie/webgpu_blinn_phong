@@ -6,8 +6,8 @@ import {
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 
 
-// TODO: put things in clip space in the shader so that I can see things instead of with world space, (standard mvp matrix stuff)
-// camera with lookat point will probably be easiest
+// add ability to move camera next
+// also need to add color and other material properties and light uniforms 
 
 const canvas = document.querySelector('canvas');
 const adapter = await navigator.gpu.requestAdapter();
@@ -19,6 +19,89 @@ const devicePixelRatio = window.devicePixelRatio;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+//input stuff
+let wDown = false;
+let aDown = false;
+let sDown = false;
+let dDown = false;
+ // collect input
+window.addEventListener(
+  "keydown",
+  (event) => {
+    
+    if (event.defaultPrevented || event.repeat) {
+      return;
+    }
+  
+    switch(event.key) {
+      case "w":
+        {
+          //console.log("w pressed.\n");
+          wDown = true;
+          break;
+        }
+      case "a":
+        {
+          //console.log("a pressed.\n");
+          aDown = true;
+          break;
+        }
+      case "s":
+        {
+          //console.log("s pressed.\n");
+          sDown = true;
+          break;
+        }
+      case "d":
+        {
+          //console.log("d pressed.\n");
+          dDown = true;
+          break;
+        }
+    }
+    event.preventDefault();
+  },
+  true,
+);
+window.addEventListener(
+  "keyup",
+  (event) => {
+    
+    if (event.defaultPrevented || event.repeat) {
+      return;
+    }
+  
+    switch(event.key) {
+      case "w":
+        {
+          //console.log("w released.\n");
+          wDown = false;
+          break;
+        }
+      case "a":
+        {
+          //console.log("a pressed.\n");
+          aDown = false;
+          break;
+        }
+      case "s":
+        {
+          //console.log("s pressed.\n");
+          sDown = false;
+          break;
+        }
+      case "d":
+        {
+          //console.log("d pressed.\n");
+          dDown = false;
+          break;
+        }
+    }
+    event.preventDefault();
+  },
+  true,
+);
 
 context.configure({
   device,
@@ -71,7 +154,7 @@ var lookAtPoint = new Float32Array([
 ]);
 
 // TODO could try mat4.lookAT();
-const camera = mat4.lookAt( //makes a view matrix
+let camera = mat4.lookAt( //makes a view matrix
   cameraPos,
   lookAtPoint,
   [0, 1, 0],
@@ -85,7 +168,7 @@ const perspective =  mat4.perspective(
 );
 console.log(perspective);
 //const view = mat4.inverse(camera);
-const vp = mat4.multiply(perspective, camera);
+let vp = mat4.multiply(perspective, camera);
 console.log(vp);
 
 
@@ -141,6 +224,53 @@ const bindGroup = device.createBindGroup({
 });
 
 function frame() {
+  // create rightVector and forwardVector
+  const forwardVector = vec3.create();
+  {
+    vec3.subtract(cameraPos, lookAtPoint, forwardVector);
+    vec3.normalize(forwardVector, forwardVector);
+    vec3.negate(forwardVector, forwardVector);
+  }
+  const rightVector = vec3.create();
+  {
+    const tempUpVector = vec3.fromValues(0, 1, 0);
+    vec3.cross(tempUpVector, forwardVector, rightVector);
+    vec3.normalize(rightVector, rightVector);
+  }
+
+  if (wDown) {
+    vec3.add(forwardVector, cameraPos, cameraPos);
+    vec3.add(forwardVector, lookAtPoint, lookAtPoint);
+    //console.log(camera);
+  }
+  if (aDown) {
+    vec3.add(rightVector, cameraPos, cameraPos);
+    vec3.add(rightVector, lookAtPoint, lookAtPoint);
+    //console.log(camera);
+  }
+  if (sDown) {
+    vec3.subtract(cameraPos, forwardVector, cameraPos);
+    vec3.subtract(lookAtPoint, forwardVector, lookAtPoint);
+    //console.log(camera);
+  }
+  if (dDown) {
+    vec3.add(vec3.negate(rightVector), cameraPos, cameraPos);
+    vec3.add(vec3.negate(rightVector), lookAtPoint, lookAtPoint);
+    //console.log(camera);
+  }
+
+  camera = mat4.lookAt( //makes a view matrix
+    cameraPos,
+    lookAtPoint,
+    [0, 1, 0],
+  );
+  
+
+  vp = mat4.multiply(perspective, camera);
+  device.queue.writeBuffer(vpBuffer, 0, vp);
+
+
+
   const commandEncoder = device.createCommandEncoder();
   const textureView = context.getCurrentTexture().createView();
 
