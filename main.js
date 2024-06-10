@@ -25,7 +25,7 @@ let wDown = false;
 let aDown = false;
 let sDown = false;
 let dDown = false;
- // collect input
+ // collect input from keyboard
 window.addEventListener(
   "keydown",
   (event) => {
@@ -149,9 +149,7 @@ var cameraPos = new Float32Array([
   0, 20, -20, //just up a bit and back
 ]);
 
-var lookAtPoint = new Float32Array([
-  0, 0, 0,
-]);
+var lookAtPoint = vec3.normalize([0, 0, 0] - cameraPos);
 
 // TODO could try mat4.lookAT();
 let camera = mat4.lookAt( //makes a view matrix
@@ -238,6 +236,7 @@ function frame() {
     vec3.normalize(rightVector, rightVector);
   }
 
+  // handle keyboard input
   if (wDown) {
     vec3.add(forwardVector, cameraPos, cameraPos);
     vec3.add(forwardVector, lookAtPoint, lookAtPoint);
@@ -259,13 +258,15 @@ function frame() {
     //console.log(camera);
   }
 
+  // handle mouse input
+
+
+  //update matrix and send to buffer
   camera = mat4.lookAt( //makes a view matrix
     cameraPos,
     lookAtPoint,
     [0, 1, 0],
   );
-  
-
   vp = mat4.multiply(perspective, camera);
   device.queue.writeBuffer(vpBuffer, 0, vp);
 
