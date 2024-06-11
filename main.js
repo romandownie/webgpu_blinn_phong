@@ -6,7 +6,8 @@ import {
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 
 
-// TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, also base things off of deltaT so that framerate isn't a factor
+// TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, 
+// base things off of deltaT so that framerate isn't a factor: implemented but should keep in mind
 // also need to add color and other material properties and light uniforms 
 // TODO this gui library could be really useful https://github.com/dataarts/dat.gui
 // TODO add support for .obj files
