@@ -6,9 +6,11 @@ import {
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 
 
-// TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, also base things off of deltaT so that framerate isn't a factor, also make it so you have to click
+// TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, also base things off of deltaT so that framerate isn't a factor
 // also need to add color and other material properties and light uniforms 
 // TODO this gui library could be really useful https://github.com/dataarts/dat.gui
+// TODO add support for .obj files
+// TODO add support for varying number of textures and textures in general
 
 const canvas = document.querySelector('canvas');
 const adapter = await navigator.gpu.requestAdapter();
@@ -25,7 +27,30 @@ const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 const infoElem = document.querySelector('#info');
 let oldTime = performance.now();
 let currTime = oldTime;
-console.log(currTime);
+//console.log(currTime);
+// getting monitor refreshrate, not the best solution but it works pretty well, maybe map it based on common refresh rates
+let monitorRefreshRate = 60;
+const getRR = async () => {
+  const t1 = await new Promise(requestAnimationFrame);
+  const t2 = await new Promise(requestAnimationFrame);
+  return 1000 / (t2 - t1);
+};
+
+const getAverageRR = async (runs = 10) => {
+  let totalRR = 0;
+  
+  for (let i = 0; i < runs; i++) {
+    totalRR += await getRR();
+  }
+  
+  return totalRR / runs;
+};
+
+// Calling the function to get the average RR
+getAverageRR().then(rr => {
+  monitorRefreshRate = rr;
+});
+//console.log(monitorRefreshRate);
 
 //input stuff
 let wDown = false;
@@ -36,6 +61,8 @@ let lookAtPointTheta = Math.PI/2.0;
 let lookAtPointPhi = Math.PI/2.0;
 let mSensitivity = 0.003;
 let mouseClickDown = false;
+let deltaTime = 0.001;
+let moveSpeed = 0.050;
  // collect input from keyboard
 window.addEventListener(
   "keydown",
@@ -204,17 +231,17 @@ let camera = mat4.lookAt( //makes a view matrix
   lookAtPoint,
   [0, 1, 0],
 );
-console.log(camera);
+//onsole.log(camera);
 const perspective =  mat4.perspective(
   Math.PI/2.0,
   1, // aspect ratio 1, 1.33, 1.78
   1.0,
   2000,
 );
-console.log(perspective);
+//console.log(perspective);
 //const view = mat4.inverse(camera);
 let vp = mat4.multiply(perspective, camera);
-console.log(vp);
+//console.log(vp);
 
 
 const lightPos = [
@@ -286,25 +313,32 @@ function frame() {
   }
 
   // handle keyboard input
+  if (deltaTime < 1000/monitorRefreshRate) { // making sure it doesn't go past my refreshrate
+    deltaTime = 1000/monitorRefreshRate;
+  }
   if (wDown) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], forwardVector, forwardVector);
     vec3.add(forwardVector, cameraPos, cameraPos);
     //vec3.add(forwardVector, lookAtPoint, lookAtPoint);
     //console.log(camera);
   }
   if (aDown) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], rightVector, rightVector);
     vec3.add(rightVector, cameraPos, cameraPos);
     //vec3.add(rightVector, lookAtPoint, lookAtPoint);
     //console.log(camera);
   }
   if (sDown) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], forwardVector, forwardVector);
     vec3.subtract(cameraPos, forwardVector, cameraPos);
     //vec3.subtract(lookAtPoint, forwardVector, lookAtPoint);
     //console.log(camera);
   }
   if (dDown) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], rightVector, rightVector);
     vec3.add(vec3.negate(rightVector), cameraPos, cameraPos);
     //vec3.add(vec3.negate(rightVector), lookAtPoint, lookAtPoint);
-    //console.log(camera);
+    //console.log(rightVector);
   }
 
   // handle mouse input
@@ -359,13 +393,29 @@ function frame() {
   device.queue.submit([commandEncoder.finish()]);
 
   //timing
+  // for(let i = 0; i < 1000000000; i++) { //inducing fps problems for testing
+  //   if (true) {
+  //     continue;
+  //   }
+  // }
+  // for(let i = 0; i < 100000000; i++) { //inducing fps problems for testing
+  //   if (true) {
+  //     continue;
+  //   }
+  // }
   // for(let i = 0; i < 10000000; i++) { //inducing fps problems for testing
   //   if (true) {
   //     continue;
   //   }
   // }
+  // for(let i = 0; i < 1000000; i++) { //inducing fps problems for testing
+  //   if (true) {
+  //     continue;
+  //   }
+  // }
   currTime = performance.now();
-  const deltaTime = currTime - oldTime;
+  deltaTime = (currTime - oldTime);
+  //console.log(deltaTime);
   infoElem.textContent = `\
     fps: ${(1000/deltaTime).toFixed(1)}
     ms: ${deltaTime.toFixed(2)}
