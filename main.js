@@ -12,6 +12,7 @@ import {
 // TODO this gui library could be really useful https://github.com/dataarts/dat.gui
 // TODO add support for .obj files
 // TODO add support for varying number of textures and textures in general
+// TODO fix frag shader to have camera uniform
 
 const canvas = document.querySelector('canvas');
 const adapter = await navigator.gpu.requestAdapter();
