@@ -28,6 +28,7 @@ let dDown = false;
 let lookAtPointTheta = Math.PI/2.0;
 let lookAtPointPhi = Math.PI/2.0;
 let mSensitivity = 0.003;
+let mouseClickDown = false;
  // collect input from keyboard
 window.addEventListener(
   "keydown",
@@ -106,11 +107,39 @@ window.addEventListener(
   true,
 );
 // mouse listener
+window.addEventListener( 
+  "mousedown", (e) => {
+    switch (e.button) {
+      case 0:
+        // left mouse button
+        //console.log("m1 pressed");
+        mouseClickDown = true;
+        document.body.requestPointerLock(); //turn off cursor
+        break;
+    }
+  }
+  
+);
+window.addEventListener( 
+  "mouseup", (e) => {
+    switch (e.button) {
+      case 0:
+        // left mouse button
+        //console.log("m1 release");
+        mouseClickDown = false;
+        document.exitPointerLock(); // bring back the cursor
+        break;
+    }
+  }
+  
+);
 function mouseMovement(event) {
   //console.log(event.movementX);
   //console.log(event.movementY);
-  lookAtPointPhi += event.movementY*mSensitivity;
-  lookAtPointTheta += event.movementX*mSensitivity;
+  if (mouseClickDown){
+    lookAtPointPhi += event.movementY*mSensitivity;
+    lookAtPointTheta += event.movementX*mSensitivity;
+  }
 }
 document.addEventListener("mousemove", mouseMovement);
 
