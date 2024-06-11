@@ -8,6 +8,7 @@ import {
 
 // TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, also base things off of deltaT so that framerate isn't a factor, also make it so you have to click
 // also need to add color and other material properties and light uniforms 
+// TODO this gui library could be really useful https://github.com/dataarts/dat.gui
 
 const canvas = document.querySelector('canvas');
 const adapter = await navigator.gpu.requestAdapter();
@@ -19,6 +20,12 @@ const devicePixelRatio = window.devicePixelRatio;
 canvas.width = canvas.clientWidth * devicePixelRatio;
 canvas.height = canvas.clientHeight * devicePixelRatio;
 const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+
+//time variables
+const infoElem = document.querySelector('#info');
+let oldTime = performance.now();
+let currTime = oldTime;
+console.log(currTime);
 
 //input stuff
 let wDown = false;
@@ -200,7 +207,7 @@ let camera = mat4.lookAt( //makes a view matrix
 console.log(camera);
 const perspective =  mat4.perspective(
   Math.PI/2.0,
-  1,
+  1, // aspect ratio 1, 1.33, 1.78
   1.0,
   2000,
 );
@@ -262,6 +269,8 @@ const bindGroup = device.createBindGroup({
 });
 
 function frame() {
+  // timing
+  oldTime = performance.now();
   // create rightVector and forwardVector
   const forwardVector = vec3.create();
   {
@@ -348,7 +357,20 @@ function frame() {
   passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);
+
+  //timing
+  // for(let i = 0; i < 10000000; i++) { //inducing fps problems for testing
+  //   if (true) {
+  //     continue;
+  //   }
+  // }
+  currTime = performance.now();
+  const deltaTime = currTime - oldTime;
+  infoElem.textContent = `\
+    fps: ${(1000/deltaTime).toFixed(1)}
+    ms: ${deltaTime.toFixed(2)}
+  `;
   requestAnimationFrame(frame);
-}
+  }
 
 requestAnimationFrame(frame);
