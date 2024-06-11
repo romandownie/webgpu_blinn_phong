@@ -1,20 +1,19 @@
 let frag_wgsl = `
 @group(0) @binding(0) var<uniform> vp: mat4x4f; 
-
+@group(0) @binding(1) var<uniform> cameraPos: vec3f; 
 
 
 @fragment
 fn main(@location(0) fragPos: vec4<f32>) -> @location(0) vec4f {
 
   let testLight = vec4f(0.0, 5.0, 5.0, 1.0);
-  let testCameraPos = vec4f(0.0, 20.0, -20.0, 1.0);
 
   let normal = normalize(vec3f(0.0, 1.0, 0.0)); //normal hard coded as straight up right now
 
   //blinn phong lighting model, reference: https://learnopengl.com/Advanced-Lighting/Advanced-Lighting
   let lightDirVec = testLight.xyz - fragPos.xyz;
   let lightDirN = normalize(lightDirVec);
-  let viewDir = normalize(testCameraPos.xyz - fragPos.xyz);
+  let viewDir = normalize(cameraPos.xyz - fragPos.xyz);
   let halfwayDir = normalize(lightDirN + viewDir);
 
   let distanceSqr = pow(length(lightDirVec), 2.0);

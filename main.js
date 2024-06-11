@@ -12,7 +12,7 @@ import {
 // TODO this gui library could be really useful https://github.com/dataarts/dat.gui
 // TODO add support for .obj files
 // TODO add support for varying number of textures and textures in general
-// TODO fix frag shader to have camera uniform
+
 
 const canvas = document.querySelector('canvas');
 const adapter = await navigator.gpu.requestAdapter();
@@ -290,10 +290,18 @@ const vpBuffer = device.createBuffer({
 });
 device.queue.writeBuffer(vpBuffer, 0, vp);
 
+const camBuffer = device.createBuffer({
+  label: "camera buffer",
+  size: cameraPos.byteLength,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(camBuffer, 0, cameraPos);
+
 const bindGroup = device.createBindGroup({
   layout: pipeline.getBindGroupLayout(0),
   entries: [
     {binding: 0, resource: {buffer: vpBuffer}},
+    {binding: 1, resource: {buffer: camBuffer}},
   ],
 });
 
@@ -368,8 +376,7 @@ function frame() {
   );
   vp = mat4.multiply(perspective, camera);
   device.queue.writeBuffer(vpBuffer, 0, vp);
-
-
+  device.queue.writeBuffer(camBuffer, 0, cameraPos); //update camera as well
 
   const commandEncoder = device.createCommandEncoder();
   const textureView = context.getCurrentTexture().createView();
