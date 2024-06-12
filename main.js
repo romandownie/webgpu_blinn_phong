@@ -271,7 +271,7 @@ let camera = mat4.lookAt( //makes a view matrix
 //onsole.log(camera);
 const perspective =  mat4.perspective(
   Math.PI/2.0,
-  1, // aspect ratio 1, 1.33, 1.78
+  canvas.width/canvas.height, // aspect ratio 1, 1.33, 1.78
   1.0,
   2000,
 );
