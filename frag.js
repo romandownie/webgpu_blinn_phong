@@ -1,14 +1,15 @@
 let frag_wgsl = `
 @group(0) @binding(0) var<uniform> vp: mat4x4f; 
 @group(0) @binding(1) var<uniform> cameraPos: vec3f; 
+//@group(0) @binding(2) var<uniform> normalArray: array<vec3f>;
 
 
 @fragment
-fn main(@location(0) fragPos: vec4<f32>) -> @location(0) vec4f {
+fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>) -> @location(0) vec4f {
 
   let testLight = vec4f(0.0, 5.0, 5.0, 1.0);
 
-  let normal = normalize(vec3f(0.0, 1.0, 0.0)); //normal hard coded as straight up right now
+  let normal = norm; //normal hard coded as straight up right now
 
   //blinn phong lighting model, reference: https://learnopengl.com/Advanced-Lighting/Advanced-Lighting
   let lightDirVec = testLight.xyz - fragPos.xyz;
@@ -23,7 +24,7 @@ fn main(@location(0) fragPos: vec4<f32>) -> @location(0) vec4f {
   let spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0); // 32.0 is shininess here
   let specular = vec3f(1.0,1.0,1.0) * spec; //hardcoded white
 
-  let ambient = vec4f(0.3, 0.03, 0.03, 1.0);
+  let ambient = vec4f(0.2, 0.02, 0.02, 1.0);
 
   
   //let finalColor = vec4f(specular, 1.0); // just specular for testing
@@ -32,6 +33,7 @@ fn main(@location(0) fragPos: vec4<f32>) -> @location(0) vec4f {
   let finalColor = vec4f(diffuse, 1.0) + vec4f(specular, 1.0) + ambient; // diffuse + specular + ambient
 
   return finalColor;
+  //return vec4f(1.0, 0.0, 0.0, 1.0); // testing color
 }
 `;
 export default frag_wgsl;

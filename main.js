@@ -4,14 +4,16 @@ import {
   vec3,
   mat4,
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
+import ObjLoader from './load_obj.js';
 
 
 // TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, 
 // base things off of deltaT so that framerate isn't a factor: implemented but should keep in mind
 // also need to add color and other material properties and light uniforms 
 // TODO this gui library could be really useful https://github.com/dataarts/dat.gui
-// TODO add support for .obj files
+// TODO add support for .obj files (done except for uv)
 // TODO add support for varying number of textures and textures in general
+// TODO this should be good for multiple models: https://www.reddit.com/r/webgpu/comments/trsfbp/questions_in_relation_to_rendering_multiple/
 
 
 const canvas = document.querySelector('canvas');
@@ -54,6 +56,21 @@ getAverageRR().then(rr => {
 });
 //console.log(monitorRefreshRate);
 
+function combineVertNormalArr(vert, normal, dest) {
+  console.log(vert);
+  console.log(normal);
+  for (let i = 0; i < dest.byteLength; i++) {
+    dest[i*6] = vert[i*3];
+    dest[i*6+1] = vert[i*3+1];
+    dest[i*6+2] = vert[i*3+2];
+    dest[i*6+3] = normal[i*3];
+    dest[i*6+4] = normal[i*3+1];
+    dest[i*6+5] = normal[i*3+2];
+  }
+  console.log("newArray: ", dest);
+  return dest;
+}
+
 //input stuff
 let wDown = false;
 let aDown = false;
@@ -65,6 +82,7 @@ let mSensitivity = 0.003;
 let mouseClickDown = false;
 let deltaTime = 0.001;
 let moveSpeed = 0.050;
+let numDrawCalls = 6;
  // collect input from keyboard
 window.addEventListener(
   "keydown",
@@ -193,12 +211,17 @@ const pipeline = device.createRenderPipeline({
     }),
     buffers: [
       {
-        arrayStride: 4 * 4, // 4 bytes for each float
-        attributes: [
-          {
+        arrayStride: 4 * 3 * 2, // 4 bytes for each float, 2 attributes
+        attributes: [ 
+          { // positions
             shaderLocation: 0,
             offset: 0,
-            format: 'float32x4', // vec4f 
+            format: 'float32x3', // vec4f 
+          },
+          { // normals
+            shaderLocation: 1,
+            offset: 4*3,
+            format: 'float32x3', // vec4f 
           },
         ],
       },
@@ -216,7 +239,19 @@ const pipeline = device.createRenderPipeline({
   },
   primitive: {
     topology: 'triangle-list',
+    cullMode: 'back',
   },
+  depthStencil: {
+    depthWriteEnabled: true,
+    depthCompare: 'less',
+    format: 'depth24plus',
+  },
+});
+
+const depthTexture = device.createTexture({ // depth buffer
+  size: [canvas.width, canvas.height],
+  format: 'depth24plus',
+  usage: GPUTextureUsage.RENDER_ATTACHMENT,
 });
 
 // camera and light data
@@ -250,6 +285,10 @@ const lightPos = [
   343.0, 548.8, 227.0, 0.0,
 ];
 
+
+
+
+
 // Vertex buffer data
 const vertexBufferData = new Float32Array([
   // Floor quad
@@ -267,21 +306,50 @@ const vertexBufferData = new Float32Array([
   //  0.0,  0.5, 0.0, 1.0,
 
    //test floor quad
-   -10, 0, -10.0, 1.0,
-   10, 0, -10.0, 1.0,
-   10,  0, 10, 1.0,
+   -10, 0, -10.0,
+   10, 0, -10.0,
+   10,  0, 10,
 
-   -10, 0, -10.0, 1.0,
-   -10, 0, 10.0, 1.0,
-   10,  0, 10, 1.0,
+   -10, 0, -10.0,
+   -10, 0, 10.0,
+   10,  0, 10,
+]);
+const indexBufferData = new Uint16Array([
+  1,2,3,
+  4,5,6,
+]);
+const normalBufferData = new Float32Array([
+  0, 1, 0,
+  0, 1, 0,
+  0, 1, 0,
+
+  0, 1, 0,
+  0, 1, 0,
+  0, 1, 0,
 ]);
 
-const vertexBuffer = device.createBuffer({
+let vertNormalData = new Float32Array(vertexBufferData.byteLength/2); // /4*2
+combineVertNormalArr(vertexBufferData, normalBufferData, vertNormalData);
+console.log(vertNormalData);
+
+let vertexBuffer = device.createBuffer({ // see if can keep it const TODO
   label: "vertex data buffer",
-  size: vertexBufferData.byteLength,
+  size: vertNormalData.byteLength,
   usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
 });
-device.queue.writeBuffer(vertexBuffer, 0, vertexBufferData);
+device.queue.writeBuffer(vertexBuffer, 0, vertNormalData);
+let indexBuffer = device.createBuffer({ // see if can keep it const TODO
+  label: "vertex index buffer",
+  size: indexBufferData.byteLength,
+  usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(indexBuffer, 0, indexBufferData);
+// let normalBuffer = device.createBuffer({ // see if can keep it const TODO
+//   label: "vertex index buffer",
+//   size: normalBufferData.byteLength,
+//   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+// });
+// device.queue.writeBuffer(normalBuffer, 0, normalBufferData);
 
 const vpBuffer = device.createBuffer({
   label: "vertex data buffer",
@@ -304,6 +372,46 @@ const bindGroup = device.createBindGroup({
     {binding: 1, resource: {buffer: camBuffer}},
   ],
 });
+
+//// TODO obj testing
+
+let objectLoader = new ObjLoader();
+let currObjFile = '';
+let bunny = '';
+async function loadAndParseObject(filePath) {
+  try {
+    currObjFile = await objectLoader.load(filePath);
+    bunny = objectLoader.parse(currObjFile);
+  } catch (error) {
+    console.error('Error loading or parsing object:', error);
+  }
+}
+
+// async obj load
+(async () => {
+  await loadAndParseObject('./bunny.obj');
+  console.log('Loading and parsing of obj complete.');
+  console.log(bunny);
+  console.log(bunny.positions);
+
+  //update vertexBuffer TODO (just a test for now)
+  let bunnyVertNorm = new Float32Array(bunny.positions.byteLength/2);
+  combineVertNormalArr(bunny.positions, bunny.normals, bunnyVertNorm);
+  vertexBuffer = device.createBuffer({ // see if can keep it const TODO
+    label: "vertex data buffer",
+    size: bunnyVertNorm.byteLength,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(vertexBuffer, 0, bunnyVertNorm);
+  indexBuffer = device.createBuffer({ // see if can keep it const TODO
+    label: "vertex index buffer",
+    size: bunny.indices.byteLength,
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(indexBuffer, 0, bunny.indices);
+  numDrawCalls = bunny.indices.byteLength/2; // divided by 2 is the right number
+  console.log(numDrawCalls);
+})();
 
 function frame() {
   // timing
@@ -390,13 +498,21 @@ function frame() {
         storeOp: 'store',
       },
     ],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+  
+      depthClearValue: 1.0,
+      depthLoadOp: 'clear',
+      depthStoreOp: 'store',
+    },
   };
 
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setVertexBuffer(0, vertexBuffer);
+  passEncoder.setIndexBuffer(indexBuffer, "uint16");
   passEncoder.setBindGroup(0, bindGroup);
-  passEncoder.draw(6); // Drawing 6 vertices for now
+  passEncoder.drawIndexed(numDrawCalls); // Drawing 6 vertices for now
   passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);
