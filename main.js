@@ -7,6 +7,11 @@ import {
 import ObjLoader from './load_obj.js';
 
 
+//// TODO TODO CURRENTLY WORKING ON RENDERING MULTIPLE MESHES USING DIFFERENT BINDGROUPS
+//// USING THIS AS A REFERENCE, REWRITE TO BE LIKE THIS: https://webgpu.github.io/webgpu-samples/?sample=renderBundles
+//// LOOKS LIKE YOU CAN HAVE AN INTERFACE AND HAVE EACH INDIVIDUAL HAVE IT'S OWN BINDGROUP
+
+
 // TODO switch mouse movement stuff from movementX and movementY to screenX and screenY deltas, 
 // base things off of deltaT so that framerate isn't a factor: implemented but should keep in mind
 // also need to add color and other material properties and light uniforms 
@@ -203,56 +208,26 @@ context.configure({
   alphaMode: 'premultiplied',
 });
 
-const pipeline = device.createRenderPipeline({
-  layout: 'auto',
-  vertex: {
-    module: device.createShaderModule({
-      code: vertWGSL,
-    }),
-    buffers: [
-      {
-        arrayStride: 4 * 3 * 2, // 4 bytes for each float, 2 attributes
-        attributes: [ 
-          { // positions
-            shaderLocation: 0,
-            offset: 0,
-            format: 'float32x3', // vec4f 
-          },
-          { // normals
-            shaderLocation: 1,
-            offset: 4*3,
-            format: 'float32x3', // vec4f 
-          },
-        ],
-      },
-    ],
-  },
-  fragment: {
-    module: device.createShaderModule({
-      code: fragWGSL,
-    }),
-    targets: [
-      {
-        format: presentationFormat,
-      },
-    ],
-  },
-  primitive: {
-    topology: 'triangle-list',
-    cullMode: 'back',
-  },
-  depthStencil: {
-    depthWriteEnabled: true,
-    depthCompare: 'less',
-    format: 'depth24plus',
-  },
-});
+
 
 const depthTexture = device.createTexture({ // depth buffer
   size: [canvas.width, canvas.height],
   format: 'depth24plus',
   usage: GPUTextureUsage.RENDER_ATTACHMENT,
 });
+
+// renderable class
+const Renderable = class {
+  constructor() {
+    this.vertNorm; // GPUBuffer
+    this.indices; // GPUBuffer
+    this.numDrawCalls; // uint16 array
+    this.transform; //mat4x4
+    this.bindGroup; // GPUBindGroup
+  }
+};
+
+let renderablesArray = [];
 
 // camera and light data
 var cameraPos = new Float32Array([
@@ -327,6 +302,21 @@ const normalBufferData = new Float32Array([
   0, 1, 0,
   0, 1, 0,
 ]);
+const mData = new Float32Array(16); // TODO
+const mArray = [
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      1, 1, 1, 1]
+  ), 
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      -2, -2, -2, 1]
+  ),
+]
 
 let vertNormalData = new Float32Array(vertexBufferData.byteLength/2); // /4*2
 combineVertNormalArr(vertexBufferData, normalBufferData, vertNormalData);
@@ -365,14 +355,104 @@ const camBuffer = device.createBuffer({
 });
 device.queue.writeBuffer(camBuffer, 0, cameraPos);
 
+const bindGroupLayout = device.createBindGroupLayout({
+  entries: [
+    {
+      binding: 0, 
+      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+      buffer: {},
+    },
+    {
+      binding: 1, 
+      visibility: GPUShaderStage.FRAGMENT,
+      buffer: {},
+    },
+  ],
+});
+
+
+const bindGroup1Layout = device.createBindGroupLayout({
+  entries: [
+    {
+      binding: 0, 
+      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+      buffer: {},
+    },
+  ]
+});
+
+const pipelineLayout = device.createPipelineLayout({
+  bindGroupLayouts: [
+    bindGroupLayout, //group(0)
+    bindGroup1Layout, //group(1)
+  ]
+})
+
+const pipeline = device.createRenderPipeline({
+  layout: pipelineLayout,
+  vertex: {
+    module: device.createShaderModule({
+      code: vertWGSL,
+    }),
+    buffers: [
+      {
+        arrayStride: 4 * 3 * 2, // 4 bytes for each float, 2 attributes
+        attributes: [ 
+          { // positions
+            shaderLocation: 0,
+            offset: 0,
+            format: 'float32x3', // vec4f 
+          },
+          { // normals
+            shaderLocation: 1,
+            offset: 4*3,
+            format: 'float32x3', // vec4f 
+          },
+        ],
+      },
+    ],
+  },
+  fragment: {
+    module: device.createShaderModule({
+      code: fragWGSL,
+    }),
+    targets: [
+      {
+        format: presentationFormat,
+      },
+    ],
+  },
+  primitive: {
+    topology: 'triangle-list',
+    cullMode: 'back',
+  },
+  depthStencil: {
+    depthWriteEnabled: true,
+    depthCompare: 'less',
+    format: 'depth24plus',
+  },
+});
+
 const bindGroup = device.createBindGroup({
-  layout: pipeline.getBindGroupLayout(0),
+  layout: bindGroupLayout,
   entries: [
     {binding: 0, resource: {buffer: vpBuffer}},
     {binding: 1, resource: {buffer: camBuffer}},
   ],
 });
 
+const mBuffer = device.createBuffer({
+  label: "model matrix buffer",
+  size: mData.byteLength,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+})
+device.queue.writeBuffer(mBuffer, 0, mData)
+const bindGroup1 = device.createBindGroup({
+  layout: bindGroup1Layout,
+  entries: [
+    {binding: 0, resource: {buffer: mBuffer}},
+  ]
+});
 //// TODO obj testing
 
 let objectLoader = new ObjLoader();
@@ -397,20 +477,66 @@ async function loadAndParseObject(filePath) {
   //update vertexBuffer TODO (just a test for now)
   let bunnyVertNorm = new Float32Array(bunny.positions.byteLength/2);
   combineVertNormalArr(bunny.positions, bunny.normals, bunnyVertNorm);
-  vertexBuffer = device.createBuffer({ // see if can keep it const TODO
+
+  renderablesArray[0] = new Renderable();//bunny1
+  renderablesArray[0].vertNorm = device.createBuffer({ // see if can keep it const TODO
     label: "vertex data buffer",
     size: bunnyVertNorm.byteLength,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(vertexBuffer, 0, bunnyVertNorm);
-  indexBuffer = device.createBuffer({ // see if can keep it const TODO
+  device.queue.writeBuffer(renderablesArray[0].vertNorm, 0, bunnyVertNorm);
+  renderablesArray[0].indices = device.createBuffer({ // see if can keep it const TODO
     label: "vertex index buffer",
     size: bunny.indices.byteLength,
     usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(indexBuffer, 0, bunny.indices);
-  numDrawCalls = bunny.indices.byteLength/2; // divided by 2 is the right number
+  device.queue.writeBuffer(renderablesArray[0].indices, 0, bunny.indices);
+  renderablesArray[0].numDrawCalls = bunny.indices.byteLength/2; // divided by 2 is the right number
   console.log(numDrawCalls);
+  renderablesArray[0].transform = mArray[0];
+
+  
+  const mBuffer1 = device.createBuffer({
+    label: "model matrix buffer",
+    size: renderablesArray[0].transform.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
+  device.queue.writeBuffer(mBuffer1, 0, renderablesArray[0].transform)
+  renderablesArray[0].bindGroup = device.createBindGroup({
+    layout: bindGroup1Layout,
+    entries: [
+      {binding: 0, resource: {buffer: mBuffer1}},
+    ]
+  });
+
+  renderablesArray[1] = new Renderable();//bunny2
+  renderablesArray[1].vertNorm = device.createBuffer({ // see if can keep it const TODO
+    label: "vertex data buffer",
+    size: bunnyVertNorm.byteLength,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(renderablesArray[1].vertNorm, 0, bunnyVertNorm);
+  renderablesArray[1].indices = device.createBuffer({ // see if can keep it const TODO
+    label: "vertex index buffer",
+    size: bunny.indices.byteLength,
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(renderablesArray[1].indices, 0, bunny.indices);
+  renderablesArray[1].numDrawCalls = bunny.indices.byteLength/2; // divided by 2 is the right number
+  console.log(numDrawCalls);
+  renderablesArray[1].transform = mArray[1];
+  const mBuffer2 = device.createBuffer({
+    label: "model matrix buffer",
+    size: renderablesArray[0].transform.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  })
+  device.queue.writeBuffer(mBuffer2, 0, renderablesArray[1].transform)
+  renderablesArray[1].bindGroup = device.createBindGroup({
+    layout: bindGroup1Layout,
+    entries: [
+      {binding: 0, resource: {buffer: mBuffer2}},
+    ]
+  });
 })();
 
 function frame() {
@@ -438,7 +564,7 @@ function frame() {
     vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], forwardVector, forwardVector);
     vec3.add(forwardVector, cameraPos, cameraPos);
     //vec3.add(forwardVector, lookAtPoint, lookAtPoint);
-    //console.log(camera);
+    // console.log(camera);
   }
   if (aDown) {
     vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], rightVector, rightVector);
@@ -506,13 +632,18 @@ function frame() {
       depthStoreOp: 'store',
     },
   };
+  
 
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
-  passEncoder.setVertexBuffer(0, vertexBuffer);
-  passEncoder.setIndexBuffer(indexBuffer, "uint16");
   passEncoder.setBindGroup(0, bindGroup);
-  passEncoder.drawIndexed(numDrawCalls); // Drawing 6 vertices for now
+
+  for (const renderable of renderablesArray) {
+    passEncoder.setVertexBuffer(0, renderable.vertNorm);
+    passEncoder.setIndexBuffer(renderable.indices, "uint16");
+    passEncoder.setBindGroup(1, renderable.bindGroup);
+    passEncoder.drawIndexed(renderable.numDrawCalls); 
+  }
   passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);

@@ -2,11 +2,12 @@ let frag_wgsl = `
 @group(0) @binding(0) var<uniform> vp: mat4x4f; 
 @group(0) @binding(1) var<uniform> cameraPos: vec3f; 
 //@group(0) @binding(2) var<uniform> normalArray: array<vec3f>;
+@group(1) @binding(0) var<uniform> m: mat4x4f; 
 
 
 @fragment
 fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>) -> @location(0) vec4f {
-
+  let test = m;
   let testLight = vec4f(0.0, 5.0, 5.0, 1.0);
 
   let normal = norm; //normal hard coded as straight up right now
