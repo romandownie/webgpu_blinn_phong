@@ -303,20 +303,128 @@ const normalBufferData = new Float32Array([
   0, 1, 0,
 ]);
 const mData = new Float32Array(16); // TODO
-const mArray = [
+// const mArray = [
+//   new Float32Array(
+//     [ 1, 0, 0, 0,
+//       0, 1, 0, 0,
+//       0, 0, 1, 0,
+//       1, 1, 1, 1]
+//   ), 
+//   new Float32Array(
+//     [ 1, 0, 0, 0,
+//       0, 1, 0, 0,
+//       0, 0, 1, 0,
+//       -2, -2, -2, 1]
+//   ),
+// ];
+const mArray = [ // mainly for testing
+  // Identity matrix (no transformation)
   new Float32Array(
     [ 1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
-      1, 1, 1, 1]
-  ), 
-  new Float32Array(
-    [ 1, 0, 0, 0,
-      0, 1, 0, 0,
-      0, 0, 1, 0,
-      -2, -2, -2, 1]
+      0, 0, 0, 1]
   ),
-]
+  // Translation by (5, 5, 5)
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      5, 5, 5, 1]
+  ),
+  // Translation by (-5, -5, -5)
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      -5, -5, -5, 1]
+  ),
+  // Rotation around the X axis by 45 degrees, translated by (10, 0, 0)
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, Math.cos(Math.PI / 4), -Math.sin(Math.PI / 4), 0,
+      0, Math.sin(Math.PI / 4), Math.cos(Math.PI / 4), 0,
+      10, 0, 0, 1]
+  ),
+  // Rotation around the Y axis by 45 degrees, translated by (0, 10, 0)
+  new Float32Array(
+    [ Math.cos(Math.PI / 4), 0, Math.sin(Math.PI / 4), 0,
+      0, 1, 0, 0,
+      -Math.sin(Math.PI / 4), 0, Math.cos(Math.PI / 4), 0,
+      0, 10, 0, 1]
+  ),
+  // Rotation around the Z axis by 45 degrees, translated by (0, 0, 10)
+  new Float32Array(
+    [ Math.cos(Math.PI / 4), -Math.sin(Math.PI / 4), 0, 0,
+      Math.sin(Math.PI / 4), Math.cos(Math.PI / 4), 0, 0,
+      0, 0, 1, 0,
+      0, 0, 10, 1]
+  ),
+  // Scaling by (2, 2, 2), translated by (-10, 0, 0)
+  new Float32Array(
+    [ 2, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 2, 0,
+      -10, 0, 0, 1]
+  ),
+  // Scaling by (0.5, 0.5, 0.5), translated by (0, -10, 0)
+  new Float32Array(
+    [ 0.5, 0, 0, 0,
+      0, 0.5, 0, 0,
+      0, 0, 0.5, 0,
+      0, -10, 0, 1]
+  ),
+  // Combined translation and scaling, translated by (0, 0, -10)
+  new Float32Array(
+    [ 2, 0, 0, 0,
+      0, 2, 0, 0,
+      0, 0, 2, 0,
+      0, 0, -10, 1]
+  ),
+  // Combined translation and rotation (X axis), translated by (5, 5, 5)
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, Math.cos(Math.PI / 4), -Math.sin(Math.PI / 4), 0,
+      0, Math.sin(Math.PI / 4), Math.cos(Math.PI / 4), 0,
+      5, 5, 5, 1]
+  ),
+  // Combined translation and rotation (Y axis), translated by (-5, -5, -5)
+  new Float32Array(
+    [ Math.cos(Math.PI / 4), 0, Math.sin(Math.PI / 4), 0,
+      0, 1, 0, 0,
+      -Math.sin(Math.PI / 4), 0, Math.cos(Math.PI / 4), 0,
+      -5, -5, -5, 1]
+  ),
+  // Combined translation and rotation (Z axis), translated by (5, -5, 5)
+  new Float32Array(
+    [ Math.cos(Math.PI / 4), -Math.sin(Math.PI / 4), 0, 0,
+      Math.sin(Math.PI / 4), Math.cos(Math.PI / 4), 0, 0,
+      0, 0, 1, 0,
+      5, -5, 5, 1]
+  ),
+  // Combined scaling and rotation (X axis), translated by (-5, 5, -5)
+  new Float32Array(
+    [ 1, 0, 0, 0,
+      0, Math.cos(Math.PI / 4) * 2, -Math.sin(Math.PI / 4) * 2, 0,
+      0, Math.sin(Math.PI / 4) * 2, Math.cos(Math.PI / 4) * 2, 0,
+      -5, 5, -5, 1]
+  ),
+  // Combined scaling and rotation (Y axis), translated by (10, 10, 10)
+  new Float32Array(
+    [ Math.cos(Math.PI / 4) * 2, 0, Math.sin(Math.PI / 4) * 2, 0,
+      0, 2, 0, 0,
+      -Math.sin(Math.PI / 4) * 2, 0, Math.cos(Math.PI / 4) * 2, 0,
+      10, 10, 10, 1]
+  ),
+  // Combined scaling and rotation (Z axis), translated by (-10, -10, -10)
+  new Float32Array(
+    [ Math.cos(Math.PI / 4) * 2, -Math.sin(Math.PI / 4) * 2, 0, 0,
+      Math.sin(Math.PI / 4) * 2, Math.cos(Math.PI / 4) * 2, 0, 0,
+      0, 0, 2, 0,
+      -10, -10, -10, 1]
+  )
+];
+
 
 let vertNormalData = new Float32Array(vertexBufferData.byteLength/2); // /4*2
 combineVertNormalArr(vertexBufferData, normalBufferData, vertNormalData);
@@ -475,69 +583,60 @@ async function loadAndParseObject(filePath) {
   console.log(bunny.positions);
 
   //update vertexBuffer TODO (just a test for now)
-  let bunnyVertNorm = new Float32Array(bunny.positions.byteLength/2);
-  combineVertNormalArr(bunny.positions, bunny.normals, bunnyVertNorm);
 
-  renderablesArray[0] = new Renderable();//bunny1
-  renderablesArray[0].vertNorm = device.createBuffer({ // see if can keep it const TODO
+  createRenderable(renderablesArray, bunny, mArray[0]);
+  createRenderable(renderablesArray, bunny, mArray[1]);
+  createRenderable(renderablesArray, bunny, mArray[2]);
+  createRenderable(renderablesArray, bunny, mArray[3]);
+  createRenderable(renderablesArray, bunny, mArray[4]);
+  createRenderable(renderablesArray, bunny, mArray[5]);
+  createRenderable(renderablesArray, bunny, mArray[6]);
+  createRenderable(renderablesArray, bunny, mArray[7]);
+  createRenderable(renderablesArray, bunny, mArray[8]);
+  createRenderable(renderablesArray, bunny, mArray[9]);
+  createRenderable(renderablesArray, bunny, mArray[10]);
+  createRenderable(renderablesArray, bunny, mArray[11]);
+  createRenderable(renderablesArray, bunny, mArray[12]);
+  createRenderable(renderablesArray, bunny, mArray[13]);
+  createRenderable(renderablesArray, bunny, mArray[14]);
+
+})();
+
+function createRenderable(arr, modelInfo, transformMat) { //arr is the renderablesArray
+  let modelVertNorm = new Float32Array(modelInfo.positions.byteLength/2);
+  combineVertNormalArr(modelInfo.positions, modelInfo.normals, modelVertNorm);
+
+  const i = arr.push(new Renderable()) - 1;// new model, push returns size of array. Stored in i for later access
+  arr[i].vertNorm = device.createBuffer({ // see if can keep it const TODO
     label: "vertex data buffer",
-    size: bunnyVertNorm.byteLength,
+    size: modelVertNorm.byteLength,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(renderablesArray[0].vertNorm, 0, bunnyVertNorm);
-  renderablesArray[0].indices = device.createBuffer({ // see if can keep it const TODO
+  device.queue.writeBuffer(arr[i].vertNorm, 0, modelVertNorm);
+  arr[i].indices = device.createBuffer({ // see if can keep it const TODO
     label: "vertex index buffer",
-    size: bunny.indices.byteLength,
+    size: modelInfo.indices.byteLength,
     usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(renderablesArray[0].indices, 0, bunny.indices);
-  renderablesArray[0].numDrawCalls = bunny.indices.byteLength/2; // divided by 2 is the right number
+  device.queue.writeBuffer(arr[i].indices, 0, modelInfo.indices);
+  arr[i].numDrawCalls = modelInfo.indices.byteLength/2; // divided by 2 is the right number
   console.log(numDrawCalls);
-  renderablesArray[0].transform = mArray[0];
+  arr[i].transform = transformMat;
 
   
   const mBuffer1 = device.createBuffer({
     label: "model matrix buffer",
-    size: renderablesArray[0].transform.byteLength,
+    size: arr[i].transform.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
-  device.queue.writeBuffer(mBuffer1, 0, renderablesArray[0].transform)
-  renderablesArray[0].bindGroup = device.createBindGroup({
+  device.queue.writeBuffer(mBuffer1, 0, arr[i].transform)
+  arr[i].bindGroup = device.createBindGroup({
     layout: bindGroup1Layout,
     entries: [
       {binding: 0, resource: {buffer: mBuffer1}},
     ]
   });
-
-  renderablesArray[1] = new Renderable();//bunny2
-  renderablesArray[1].vertNorm = device.createBuffer({ // see if can keep it const TODO
-    label: "vertex data buffer",
-    size: bunnyVertNorm.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(renderablesArray[1].vertNorm, 0, bunnyVertNorm);
-  renderablesArray[1].indices = device.createBuffer({ // see if can keep it const TODO
-    label: "vertex index buffer",
-    size: bunny.indices.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(renderablesArray[1].indices, 0, bunny.indices);
-  renderablesArray[1].numDrawCalls = bunny.indices.byteLength/2; // divided by 2 is the right number
-  console.log(numDrawCalls);
-  renderablesArray[1].transform = mArray[1];
-  const mBuffer2 = device.createBuffer({
-    label: "model matrix buffer",
-    size: renderablesArray[0].transform.byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  })
-  device.queue.writeBuffer(mBuffer2, 0, renderablesArray[1].transform)
-  renderablesArray[1].bindGroup = device.createBindGroup({
-    layout: bindGroup1Layout,
-    entries: [
-      {binding: 0, resource: {buffer: mBuffer2}},
-    ]
-  });
-})();
+}
 
 function frame() {
   // timing
