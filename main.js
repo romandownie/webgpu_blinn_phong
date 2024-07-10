@@ -5,6 +5,7 @@ import {
   mat4,
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 import ObjLoader from './load_obj.js';
+import OBJFile from './OBJFile.js';
 
 
 //// TODO TODO CURRENTLY WORKING ON RENDERING MULTIPLE MESHES USING DIFFERENT BINDGROUPS
@@ -563,13 +564,38 @@ const bindGroup1 = device.createBindGroup({
 });
 //// TODO obj testing
 
-let objectLoader = new ObjLoader();
+// let objectLoader = new ObjLoader();
 let currObjFile = '';
 let bunny = '';
+async function load(filePath) {
+
+  const resp = await fetch(filePath)
+  if (!resp.ok) {
+  throw new Error(
+      `ObjLoader could not fine file at ${filePath}. Please check your path.`
+  )
+  }
+  const file = await resp.text()
+
+  if (file.length === 0) {
+  throw new Error(`${filePath} File is empty.`)
+  }
+  return file;
+}
 async function loadAndParseObject(filePath) {
   try {
-    currObjFile = await objectLoader.load(filePath);
-    bunny = objectLoader.parse(currObjFile);
+    const fileContents = await load(filePath);
+    currObjFile = new OBJFile(fileContents);
+    bunny = currObjFile.parse();
+    const bunnyVert = new Float32Array(bunny.models[0].vertices);
+    bunny.models[0].vertices = bunnyVert;
+    //console.log("bunny.models[0].vertices", bunny.models[0].vertices);
+    const bunnyNorm = new Float32Array(bunny.models[0].vertexNormals);
+    bunny.models[0].vertexNormals = bunnyNorm;
+    const bunnyTexCoord = new Float32Array(bunny.models[0].textureCoords);
+    bunny.models[0].textureCoords = bunnyTexCoord;
+    const bunnyIndex = new Uint16Array(bunny.models[0].indices);
+    bunny.models[0].indices = bunnyIndex;
   } catch (error) {
     console.error('Error loading or parsing object:', error);
   }
@@ -577,12 +603,9 @@ async function loadAndParseObject(filePath) {
 
 // async obj load
 (async () => {
-  await loadAndParseObject('./bunny.obj');
+  await loadAndParseObject('./bunny.obj'); // TODO look into using this instead: https://github.com/WesUnwin/obj-file-parser/blob/master/src/OBJFile.js
   console.log('Loading and parsing of obj complete.');
   console.log(bunny);
-  console.log(bunny.positions);
-
-  //update vertexBuffer TODO (just a test for now)
 
   createRenderable(renderablesArray, bunny, mArray[0]);
   createRenderable(renderablesArray, bunny, mArray[1]);
@@ -603,8 +626,8 @@ async function loadAndParseObject(filePath) {
 })();
 
 function createRenderable(arr, modelInfo, transformMat) { //arr is the renderablesArray
-  let modelVertNorm = new Float32Array(modelInfo.positions.byteLength/2);
-  combineVertNormalArr(modelInfo.positions, modelInfo.normals, modelVertNorm);
+  let modelVertNorm = new Float32Array(modelInfo.models[0].vertices.byteLength/2);
+  combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelVertNorm);
 
   const i = arr.push(new Renderable()) - 1;// new model, push returns size of array. Stored in i for later access
   arr[i].vertNorm = device.createBuffer({ // see if can keep it const TODO
@@ -615,12 +638,12 @@ function createRenderable(arr, modelInfo, transformMat) { //arr is the renderabl
   device.queue.writeBuffer(arr[i].vertNorm, 0, modelVertNorm);
   arr[i].indices = device.createBuffer({ // see if can keep it const TODO
     label: "vertex index buffer",
-    size: modelInfo.indices.byteLength,
+    size: modelInfo.models[0].indices.byteLength,
     usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(arr[i].indices, 0, modelInfo.indices);
-  arr[i].numDrawCalls = modelInfo.indices.byteLength/2; // divided by 2 is the right number
-  console.log(numDrawCalls);
+  device.queue.writeBuffer(arr[i].indices, 0, modelInfo.models[0].indices);
+  arr[i].numDrawCalls = modelInfo.models[0].indices.byteLength/2; // divided by 2 is the right number
+  console.log("numDrawCalls: ", arr[i].numDrawCalls);
   arr[i].transform = transformMat;
 
   
