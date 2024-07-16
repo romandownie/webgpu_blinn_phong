@@ -6,8 +6,8 @@ let frag_wgsl = `
 
 
 @fragment
-fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>) -> @location(0) vec4f {
-  let test = m;
+fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>, @location(2) UV: vec2<f32>) -> @location(0) vec4f {
+  let test = UV;
   let testLight = vec4f(0.0, 5.0, 5.0, 1.0);
 
   let normal = norm; //normal hard coded as straight up right now
@@ -25,7 +25,8 @@ fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>) -> @locat
   let spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0); // 32.0 is shininess here
   let specular = vec3f(1.0,1.0,1.0) * spec; //hardcoded white
 
-  let ambient = vec4f(0.2, 0.02, 0.02, 1.0);
+  let ambient = vec4f(vec3f(0.2, 0.02, 0.02), 1.0); 
+  //let ambient = vec4f(vec3f(0.2, 0.02, 0.02) + vec3f(0.0, UV.x, UV.y), 1.0); //testing uv coords
 
   
   //let finalColor = vec4f(specular, 1.0); // just specular for testing

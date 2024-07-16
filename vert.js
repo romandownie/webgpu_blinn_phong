@@ -6,13 +6,15 @@ struct VertexOutput {
   @builtin(position) Position : vec4f,
   @location(0) fragPos: vec4f,
   @location(1) norm: vec3f,
+  @location(2) UV: vec2f,
 }
 
 @vertex
 fn main(
   @location(0) inPosition: vec4f,
   @location(1) inNormal: vec3f,
-  @builtin(vertex_index) VertexIndex: u32
+  @location(2) inUV: vec2f,
+  //@builtin(vertex_index) VertexIndex: u32
 ) -> VertexOutput {
   var output : VertexOutput;
   let test = m;
@@ -23,6 +25,7 @@ fn main(
   output.Position = vp * scale * m * inPosition;
   output.fragPos = inPosition;
   output.norm = inNormal;
+  output.UV = inUV;
   return output;
 }
 `;

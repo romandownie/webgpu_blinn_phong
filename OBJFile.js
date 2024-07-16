@@ -75,6 +75,8 @@ _createNewModel(name = this.defaultModelName) {
     vertexNormals: [],
     faces: [],
     indices: [],
+    normalIndices: [],
+    textureIndices: [],
     lines: []
     };
 }
@@ -185,6 +187,8 @@ _parsePolygon(lineItems) {
     // TODO testing
     //this._currentModel().indices.push(vertexIndex);
     this._currentModel().indices.push(vertexIndex - 1);
+    this._currentModel().normalIndices.push(vertexNormalIndex - 1);
+    this._currentModel().textureIndices.push(textureCoordsIndex - 1);
     face.vertices.push({
         vertexIndex,
         textureCoordsIndex,

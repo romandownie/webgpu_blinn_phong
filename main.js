@@ -62,18 +62,30 @@ getAverageRR().then(rr => {
 });
 //console.log(monitorRefreshRate);
 
-function combineVertNormalArr(vert, normal, dest) {
-  console.log(vert);
-  console.log(normal);
+function combineVertNormalArr(vert, normal, tex, vertIndices, normalIndices, texIndices, dest) {
+  //console.log(vert);
+  //console.log(normal);
+  console.log("texIndices", texIndices[0]);
+  
   for (let i = 0; i < dest.byteLength; i++) {
-    dest[i*6] = vert[i*3];
-    dest[i*6+1] = vert[i*3+1];
-    dest[i*6+2] = vert[i*3+2];
-    dest[i*6+3] = normal[i*3];
-    dest[i*6+4] = normal[i*3+1];
-    dest[i*6+5] = normal[i*3+2];
+    //console.log(indices[i*3])
+    dest[i*8] = vert[3*vertIndices[i]];
+    dest[i*8+1] = vert[3*vertIndices[i]+1];
+    dest[i*8+2] = vert[3*vertIndices[i]+2];
+    dest[i*8+3] = normal[3*normalIndices[i]];
+    dest[i*8+4] = normal[3*normalIndices[i]+1];
+    dest[i*8+5] = normal[3*normalIndices[i]+2];
+    dest[i*8+6] = tex[3*texIndices[i]];
+    dest[i*8+7] = tex[3*texIndices[i]+1];
+
+    // dest[i*6] = vert[i*3];
+    // dest[i*6+1] = vert[i*3+1];
+    // dest[i*6+2] = vert[i*3+2];
+    // dest[i*6+3] = normal[i*3];
+    // dest[i*6+4] = normal[i*3+1];
+    // dest[i*6+5] = normal[i*3+2];
   }
-  console.log("newArray: ", dest);
+  //console.log("newArray: ", dest);
   return dest;
 }
 
@@ -428,7 +440,7 @@ const mArray = [ // mainly for testing
 
 
 let vertNormalData = new Float32Array(vertexBufferData.byteLength/2); // /4*2
-combineVertNormalArr(vertexBufferData, normalBufferData, vertNormalData);
+combineVertNormalArr(vertexBufferData, normalBufferData, vertexBufferData, vertexBufferData, vertexBufferData, vertexBufferData, vertNormalData);
 console.log(vertNormalData);
 
 let vertexBuffer = device.createBuffer({ // see if can keep it const TODO
@@ -505,17 +517,22 @@ const pipeline = device.createRenderPipeline({
     }),
     buffers: [
       {
-        arrayStride: 4 * 3 * 2, // 4 bytes for each float, 2 attributes
+        arrayStride: 4 * 3 * 2 + 4*2*1, // 4 bytes for each float, 2 attributes
         attributes: [ 
           { // positions
             shaderLocation: 0,
             offset: 0,
-            format: 'float32x3', // vec4f 
+            format: 'float32x3', // vec3f 
           },
           { // normals
             shaderLocation: 1,
             offset: 4*3,
-            format: 'float32x3', // vec4f 
+            format: 'float32x3', // vec3f 
+          },
+          { // texture coords
+            shaderLocation: 2,
+            offset: 4*3*2,
+            format: 'float32x2', // vec2f 
           },
         ],
       },
@@ -594,8 +611,13 @@ async function loadAndParseObject(filePath) {
     bunny.models[0].vertexNormals = bunnyNorm;
     const bunnyTexCoord = new Float32Array(bunny.models[0].textureCoords);
     bunny.models[0].textureCoords = bunnyTexCoord;
-    const bunnyIndex = new Uint16Array(bunny.models[0].indices);
+    const bunnyIndex = new Uint32Array(bunny.models[0].indices);
     bunny.models[0].indices = bunnyIndex;
+    const bunnyNormalIndex = new Uint32Array(bunny.models[0].normalIndices);
+    bunny.models[0].normalIndices = bunnyNormalIndex;
+    const bunnyTexIndex = new Uint32Array(bunny.models[0].textureIndices);
+    bunny.models[0].textureIndices = bunnyTexIndex;
+    console.log("texcoords", bunny.models[0].textureCoords);
   } catch (error) {
     console.error('Error loading or parsing object:', error);
   }
@@ -603,7 +625,7 @@ async function loadAndParseObject(filePath) {
 
 // async obj load
 (async () => {
-  await loadAndParseObject('./bunny.obj'); // TODO look into using this instead: https://github.com/WesUnwin/obj-file-parser/blob/master/src/OBJFile.js
+  await loadAndParseObject('./bunny_uv.obj'); // TODO look into using this instead: https://github.com/WesUnwin/obj-file-parser/blob/master/src/OBJFile.js
   console.log('Loading and parsing of obj complete.');
   console.log(bunny);
 
@@ -626,8 +648,8 @@ async function loadAndParseObject(filePath) {
 })();
 
 function createRenderable(arr, modelInfo, transformMat) { //arr is the renderablesArray
-  let modelVertNorm = new Float32Array(modelInfo.models[0].vertices.byteLength/2);
-  combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelVertNorm);
+  let modelVertNorm = new Float32Array(208890*8); //hardcoded for now, basically just indicies * num elements per vertex buffer array index
+  combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelInfo.models[0].textureCoords, modelInfo.models[0].indices, bunny.models[0].normalIndices, bunny.models[0].textureIndices, modelVertNorm);
 
   const i = arr.push(new Renderable()) - 1;// new model, push returns size of array. Stored in i for later access
   arr[i].vertNorm = device.createBuffer({ // see if can keep it const TODO
@@ -762,9 +784,10 @@ function frame() {
 
   for (const renderable of renderablesArray) {
     passEncoder.setVertexBuffer(0, renderable.vertNorm);
-    passEncoder.setIndexBuffer(renderable.indices, "uint16");
+    //passEncoder.setIndexBuffer(renderable.indices, "uint16");
     passEncoder.setBindGroup(1, renderable.bindGroup);
-    passEncoder.drawIndexed(renderable.numDrawCalls); 
+    //passEncoder.drawIndexed(renderable.numDrawCalls); 
+    passEncoder.draw(69630*3); //normals might still be wrong, draw calls equals faces count * 3
   }
   passEncoder.end();
 
