@@ -584,7 +584,8 @@ const mBuffer = device.createBuffer({
 })
 device.queue.writeBuffer(mBuffer, 0, mData);
 
-const response = await fetch('./Original_Doge_meme.jpg');
+//const response = await fetch('./Original_Doge_meme.jpg');
+const response = await fetch('./pngtree-grey-gravel-texture-wallpaper-png-image_5752418.png');
 const imageBitmapTest = await createImageBitmap(await response.blob());
 
 const texBuffer = device.createTexture({
