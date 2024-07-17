@@ -499,6 +499,16 @@ const bindGroup1Layout = device.createBindGroupLayout({
       visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: {},
     },
+    {
+      binding: 1, 
+      visibility: GPUShaderStage.FRAGMENT,
+      sampler: {},
+    },
+    {
+      binding: 2, 
+      visibility: GPUShaderStage.FRAGMENT,
+      texture: {},
+    },
   ]
 });
 
@@ -573,10 +583,34 @@ const mBuffer = device.createBuffer({
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 })
 device.queue.writeBuffer(mBuffer, 0, mData);
+
+const response = await fetch('./Original_Doge_meme.jpg');
+const imageBitmapTest = await createImageBitmap(await response.blob());
+
+const texBuffer = device.createTexture({
+  label: 'doge',
+  size: [imageBitmapTest.width, imageBitmapTest.height, 1],
+  format: 'rgba8unorm',
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmapTest },
+  { texture: texBuffer },
+  [imageBitmapTest.width, imageBitmapTest.height]
+);
+const sampler = device.createSampler({
+  magFilter: 'linear',
+  minFilter: 'linear', //want to change to anisotropic if possible
+});
 const bindGroup1 = device.createBindGroup({
   layout: bindGroup1Layout,
   entries: [
     {binding: 0, resource: {buffer: mBuffer}},
+    {binding: 1, resource: sampler},
+    {binding: 2, resource: texBuffer.createView()},
   ]
 });
 //// TODO obj testing
@@ -632,18 +666,18 @@ async function loadAndParseObject(filePath) {
   createRenderable(renderablesArray, bunny, mArray[0]);
   createRenderable(renderablesArray, bunny, mArray[1]);
   createRenderable(renderablesArray, bunny, mArray[2]);
-  createRenderable(renderablesArray, bunny, mArray[3]);
-  createRenderable(renderablesArray, bunny, mArray[4]);
-  createRenderable(renderablesArray, bunny, mArray[5]);
-  createRenderable(renderablesArray, bunny, mArray[6]);
-  createRenderable(renderablesArray, bunny, mArray[7]);
-  createRenderable(renderablesArray, bunny, mArray[8]);
-  createRenderable(renderablesArray, bunny, mArray[9]);
-  createRenderable(renderablesArray, bunny, mArray[10]);
-  createRenderable(renderablesArray, bunny, mArray[11]);
-  createRenderable(renderablesArray, bunny, mArray[12]);
-  createRenderable(renderablesArray, bunny, mArray[13]);
-  createRenderable(renderablesArray, bunny, mArray[14]);
+  // createRenderable(renderablesArray, bunny, mArray[3]);
+  // createRenderable(renderablesArray, bunny, mArray[4]);
+  // createRenderable(renderablesArray, bunny, mArray[5]);
+  // createRenderable(renderablesArray, bunny, mArray[6]);
+  // createRenderable(renderablesArray, bunny, mArray[7]);
+  // createRenderable(renderablesArray, bunny, mArray[8]);
+  // createRenderable(renderablesArray, bunny, mArray[9]);
+  // createRenderable(renderablesArray, bunny, mArray[10]);
+  // createRenderable(renderablesArray, bunny, mArray[11]);
+  // createRenderable(renderablesArray, bunny, mArray[12]);
+  // createRenderable(renderablesArray, bunny, mArray[13]);
+  // createRenderable(renderablesArray, bunny, mArray[14]);
 
 })();
 
@@ -669,17 +703,20 @@ function createRenderable(arr, modelInfo, transformMat) { //arr is the renderabl
   console.log("numDrawCalls: ", arr[i].numDrawCalls);
   arr[i].transform = transformMat;
 
-  
   const mBuffer1 = device.createBuffer({
     label: "model matrix buffer",
     size: arr[i].transform.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   })
   device.queue.writeBuffer(mBuffer1, 0, arr[i].transform)
+
+  // need to load texture here, not sure how with async being weird
   arr[i].bindGroup = device.createBindGroup({
     layout: bindGroup1Layout,
     entries: [
       {binding: 0, resource: {buffer: mBuffer1}},
+      {binding: 1, resource: sampler}, // these are the ones defined outside of this func for now
+      {binding: 2, resource: texBuffer.createView()}, // these are the ones defined outside of this func for now
     ]
   });
 }
