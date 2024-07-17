@@ -572,7 +572,7 @@ const mBuffer = device.createBuffer({
   size: mData.byteLength,
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 })
-device.queue.writeBuffer(mBuffer, 0, mData)
+device.queue.writeBuffer(mBuffer, 0, mData);
 const bindGroup1 = device.createBindGroup({
   layout: bindGroup1Layout,
   entries: [
@@ -604,20 +604,20 @@ async function loadAndParseObject(filePath) {
     const fileContents = await load(filePath);
     currObjFile = new OBJFile(fileContents);
     bunny = currObjFile.parse();
-    const bunnyVert = new Float32Array(bunny.models[0].vertices);
-    bunny.models[0].vertices = bunnyVert;
-    //console.log("bunny.models[0].vertices", bunny.models[0].vertices);
-    const bunnyNorm = new Float32Array(bunny.models[0].vertexNormals);
-    bunny.models[0].vertexNormals = bunnyNorm;
-    const bunnyTexCoord = new Float32Array(bunny.models[0].textureCoords);
-    bunny.models[0].textureCoords = bunnyTexCoord;
+    // const bunnyVert = new Float32Array(bunny.models[0].vertices);
+    // bunny.models[0].vertices = bunnyVert;
+    // //console.log("bunny.models[0].vertices", bunny.models[0].vertices);
+    // const bunnyNorm = new Float32Array(bunny.models[0].vertexNormals);
+    // bunny.models[0].vertexNormals = bunnyNorm;
+    // const bunnyTexCoord = new Float32Array(bunny.models[0].textureCoords);
+    // bunny.models[0].textureCoords = bunnyTexCoord;
     const bunnyIndex = new Uint32Array(bunny.models[0].indices);
     bunny.models[0].indices = bunnyIndex;
-    const bunnyNormalIndex = new Uint32Array(bunny.models[0].normalIndices);
-    bunny.models[0].normalIndices = bunnyNormalIndex;
-    const bunnyTexIndex = new Uint32Array(bunny.models[0].textureIndices);
-    bunny.models[0].textureIndices = bunnyTexIndex;
-    console.log("texcoords", bunny.models[0].textureCoords);
+    // const bunnyNormalIndex = new Uint32Array(bunny.models[0].normalIndices);
+    // bunny.models[0].normalIndices = bunnyNormalIndex;
+    // const bunnyTexIndex = new Uint32Array(bunny.models[0].textureIndices);
+    // bunny.models[0].textureIndices = bunnyTexIndex;
+    // console.log("texcoords", bunny.models[0].textureCoords);
   } catch (error) {
     console.error('Error loading or parsing object:', error);
   }
@@ -648,7 +648,7 @@ async function loadAndParseObject(filePath) {
 })();
 
 function createRenderable(arr, modelInfo, transformMat) { //arr is the renderablesArray
-  let modelVertNorm = new Float32Array(208890*8); //hardcoded for now, basically just indicies * num elements per vertex buffer array index
+  let modelVertNorm = new Float32Array(modelInfo.models[0].indices.byteLength/4*8); //hardcoded for now, basically just indicies * num elements per vertex buffer array index
   combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelInfo.models[0].textureCoords, modelInfo.models[0].indices, bunny.models[0].normalIndices, bunny.models[0].textureIndices, modelVertNorm);
 
   const i = arr.push(new Renderable()) - 1;// new model, push returns size of array. Stored in i for later access
@@ -658,13 +658,14 @@ function createRenderable(arr, modelInfo, transformMat) { //arr is the renderabl
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   });
   device.queue.writeBuffer(arr[i].vertNorm, 0, modelVertNorm);
-  arr[i].indices = device.createBuffer({ // see if can keep it const TODO
-    label: "vertex index buffer",
-    size: modelInfo.models[0].indices.byteLength,
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  });
-  device.queue.writeBuffer(arr[i].indices, 0, modelInfo.models[0].indices);
-  arr[i].numDrawCalls = modelInfo.models[0].indices.byteLength/2; // divided by 2 is the right number
+  // arr[i].indices = device.createBuffer({ // see if can keep it const TODO
+  //   label: "vertex index buffer",
+  //   size: modelInfo.models[0].indices.byteLength,
+  //   usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+  // });
+  // device.queue.writeBuffer(arr[i].indices, 0, modelInfo.models[0].indices);
+  arr[i].indices = [];
+  arr[i].numDrawCalls = modelInfo.models[0].indices.byteLength/4; 
   console.log("numDrawCalls: ", arr[i].numDrawCalls);
   arr[i].transform = transformMat;
 
@@ -787,7 +788,7 @@ function frame() {
     //passEncoder.setIndexBuffer(renderable.indices, "uint16");
     passEncoder.setBindGroup(1, renderable.bindGroup);
     //passEncoder.drawIndexed(renderable.numDrawCalls); 
-    passEncoder.draw(69630*3); //normals might still be wrong, draw calls equals faces count * 3
+    passEncoder.draw(renderable.numDrawCalls); //normals might still be wrong, draw calls equals faces count * 3
   }
   passEncoder.end();
 

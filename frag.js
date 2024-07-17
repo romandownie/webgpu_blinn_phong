@@ -26,7 +26,7 @@ fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>, @location
   let specular = vec3f(1.0,1.0,1.0) * spec; //hardcoded white
 
   let ambient = vec4f(vec3f(0.2, 0.02, 0.02), 1.0); 
-  //let ambient = vec4f(vec3f(0.2, 0.02, 0.02) + vec3f(0.0, UV.x, UV.y), 1.0); //testing uv coords
+  //let ambient = vec4f(vec3f(0.0, UV.x, UV.y), 1.0); //testing uv coords
 
   
   //let finalColor = vec4f(specular, 1.0); // just specular for testing
