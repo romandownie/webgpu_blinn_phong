@@ -621,6 +621,8 @@ device.queue.copyExternalImageToTexture(
 const sampler = device.createSampler({
   magFilter: 'linear',
   minFilter: 'linear', //want to change to anisotropic if possible
+  mipmapFilter : 'linear',
+  maxAnisotropy: 16,
 });
 const bindGroup1 = device.createBindGroup({
   layout: bindGroup1Layout,
