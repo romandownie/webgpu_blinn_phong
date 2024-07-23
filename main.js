@@ -210,6 +210,11 @@ function mouseMovement(event) {
   //console.log(event.movementY);
   if (mouseClickDown){
     lookAtPointPhi += event.movementY*mSensitivity;
+    if (lookAtPointPhi <= 0.01) {
+      lookAtPointPhi = 0.01;
+    } else if (lookAtPointPhi >= Math.PI - 0.01) {
+      lookAtPointPhi = Math.PI - 0.01;
+    }
     lookAtPointTheta += event.movementX*mSensitivity;
   }
 }
