@@ -584,12 +584,12 @@ const mBuffer = device.createBuffer({
 })
 device.queue.writeBuffer(mBuffer, 0, mData);
 
+
 //const response = await fetch('./Original_Doge_meme.jpg');
 const response = await fetch('./pngtree-grey-gravel-texture-wallpaper-png-image_5752418.png');
 const imageBitmapTest = await createImageBitmap(await response.blob());
-
 const texBuffer = device.createTexture({
-  label: 'doge',
+  label: 'tex0',
   size: [imageBitmapTest.width, imageBitmapTest.height, 1],
   format: 'rgba8unorm',
   usage:
@@ -601,6 +601,22 @@ device.queue.copyExternalImageToTexture(
   { source: imageBitmapTest },
   { texture: texBuffer },
   [imageBitmapTest.width, imageBitmapTest.height]
+);
+const response1 = await fetch('./Original_Doge_meme.jpg');
+const imageBitmapTest1 = await createImageBitmap(await response1.blob());
+const texBuffer1 = device.createTexture({
+  label: 'tex1',
+  size: [imageBitmapTest1.width, imageBitmapTest1.height, 1],
+  format: 'rgba8unorm',
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmapTest1 },
+  { texture: texBuffer1 },
+  [imageBitmapTest1.width, imageBitmapTest1.height]
 );
 const sampler = device.createSampler({
   magFilter: 'linear',
@@ -664,9 +680,9 @@ async function loadAndParseObject(filePath) {
   console.log('Loading and parsing of obj complete.');
   console.log(bunny);
 
-  createRenderable(renderablesArray, bunny, mArray[0]);
-  createRenderable(renderablesArray, bunny, mArray[1]);
-  createRenderable(renderablesArray, bunny, mArray[2]);
+  createRenderable(renderablesArray, bunny, mArray[0], texBuffer);
+  createRenderable(renderablesArray, bunny, mArray[1], texBuffer1);
+  createRenderable(renderablesArray, bunny, mArray[2], texBuffer);
   // createRenderable(renderablesArray, bunny, mArray[3]);
   // createRenderable(renderablesArray, bunny, mArray[4]);
   // createRenderable(renderablesArray, bunny, mArray[5]);
@@ -682,7 +698,7 @@ async function loadAndParseObject(filePath) {
 
 })();
 
-function createRenderable(arr, modelInfo, transformMat) { //arr is the renderablesArray
+function createRenderable(arr, modelInfo, transformMat, texture) { //arr is the renderablesArray
   let modelVertNorm = new Float32Array(modelInfo.models[0].indices.byteLength/4*8); //hardcoded for now, basically just indicies * num elements per vertex buffer array index
   combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelInfo.models[0].textureCoords, modelInfo.models[0].indices, bunny.models[0].normalIndices, bunny.models[0].textureIndices, modelVertNorm);
 
@@ -717,7 +733,7 @@ function createRenderable(arr, modelInfo, transformMat) { //arr is the renderabl
     entries: [
       {binding: 0, resource: {buffer: mBuffer1}},
       {binding: 1, resource: sampler}, // these are the ones defined outside of this func for now
-      {binding: 2, resource: texBuffer.createView()}, // these are the ones defined outside of this func for now
+      {binding: 2, resource: texture.createView()}, // these are the ones defined outside of this func for now
     ]
   });
 }
