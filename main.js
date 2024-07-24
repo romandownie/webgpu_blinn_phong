@@ -76,7 +76,7 @@ function combineVertNormalArr(vert, normal, tex, vertIndices, normalIndices, tex
     dest[i*8+4] = normal[3*normalIndices[i]+1];
     dest[i*8+5] = normal[3*normalIndices[i]+2];
     dest[i*8+6] = tex[3*texIndices[i]];
-    dest[i*8+7] = tex[3*texIndices[i]+1];
+    dest[i*8+7] = 1-tex[3*texIndices[i]+1]; // 1 - val because webgpu is upsidedown
 
     // dest[i*6] = vert[i*3];
     // dest[i*6+1] = vert[i*3+1];
@@ -623,6 +623,22 @@ device.queue.copyExternalImageToTexture(
   { texture: texBuffer1 },
   [imageBitmapTest1.width, imageBitmapTest1.height]
 );
+const response2 = await fetch('./cu_awp_hyper_beast.jpg');
+const imageBitmapTest2 = await createImageBitmap(await response2.blob());
+const texBuffer2 = device.createTexture({
+  label: 'tex2',
+  size: [imageBitmapTest2.width, imageBitmapTest2.height, 1],
+  format: 'rgba8unorm',
+  usage:
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT,
+});
+device.queue.copyExternalImageToTexture(
+  { source: imageBitmapTest2 },
+  { texture: texBuffer2 },
+  [imageBitmapTest2.width, imageBitmapTest2.height]
+);
 const sampler = device.createSampler({
   magFilter: 'linear',
   minFilter: 'linear', //want to change to anisotropic if possible
@@ -643,6 +659,7 @@ const bindGroup1 = device.createBindGroup({
 let currObjFile = '';
 let bunny = '';
 let room = '';
+let awp = '';
 async function load(filePath) {
 
   const resp = await fetch(filePath)
@@ -691,10 +708,22 @@ async function loadAndParseObject(filePath, obj) {
   room = await loadAndParseObject('./test_gallery_cube.obj', room);
   console.log('Loading and parsing of obj complete.');
   console.log(room);
+  awp =  await loadAndParseObject('./awp.obj', awp);
+  console.log(awp);
 
   createRenderable(renderablesArray, bunny, mArray[0], texBuffer);
-  createRenderable(renderablesArray, bunny, mArray[1], texBuffer1);
-  createRenderable(renderablesArray, room, mArray[0], texBuffer);
+  createRenderable(renderablesArray, awp, new Float32Array(
+    [ Math.cos(Math.PI / 4)*0.2, 0, -Math.sin(Math.PI / 4)*0.2, 0,
+      0, 0.2, 0, 0,
+      Math.sin(Math.PI / 4)*0.2, 0, Math.cos(Math.PI / 4)*0.2, 0,
+      2, 2, 0, 1]
+  ), texBuffer2);
+  createRenderable(renderablesArray, room, 
+    new Float32Array(
+    [ 1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 10, 1]), texBuffer1);
   // createRenderable(renderablesArray, bunny, mArray[3]);
   // createRenderable(renderablesArray, bunny, mArray[4]);
   // createRenderable(renderablesArray, bunny, mArray[5]);

@@ -23,7 +23,7 @@ fn main(
                       0.0, 0.0, 4.0, 0.0,
                       0.0, 0.0, 0.0, 1.0);
   output.Position = vp * scale * m * inPosition;
-  output.fragPos = inPosition;
+  output.fragPos = m * inPosition;
   output.norm = inNormal;
   output.UV = inUV;
   return output;

@@ -25,6 +25,7 @@ fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>, @location
   //let diffuse = vec3f(0.9, 0.1, 0.1) * intensity * (20/distanceSqr);
   let diffuse = texAlbedo.xyz * intensity * (20/distanceSqr);
 
+  // specular might have to fall off with distance
   let spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0); // 32.0 is shininess here
   let specular = vec3f(1.0,1.0,1.0) * spec; //hardcoded white
 
