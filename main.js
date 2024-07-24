@@ -712,7 +712,7 @@ async function loadAndParseObject(filePath, obj) {
 
 function createRenderable(arr, modelInfo, transformMat, texture) { //arr is the renderablesArray
   let modelVertNorm = new Float32Array(modelInfo.models[0].indices.byteLength/4*8); //hardcoded for now, basically just indicies * num elements per vertex buffer array index
-  combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelInfo.models[0].textureCoords, modelInfo.models[0].indices, bunny.models[0].normalIndices, bunny.models[0].textureIndices, modelVertNorm);
+  combineVertNormalArr(modelInfo.models[0].vertices, modelInfo.models[0].vertexNormals, modelInfo.models[0].textureCoords, modelInfo.models[0].indices, modelInfo.models[0].normalIndices, modelInfo.models[0].textureIndices, modelVertNorm);
 
   const i = arr.push(new Renderable()) - 1;// new model, push returns size of array. Stored in i for later access
   arr[i].vertNorm = device.createBuffer({ // see if can keep it const TODO
