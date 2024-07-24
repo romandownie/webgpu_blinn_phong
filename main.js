@@ -85,7 +85,7 @@ function combineVertNormalArr(vert, normal, tex, vertIndices, normalIndices, tex
     // dest[i*6+4] = normal[i*3+1];
     // dest[i*6+5] = normal[i*3+2];
   }
-  //console.log("newArray: ", dest);
+  console.log("newArray: ", dest);
   return dest;
 }
 
@@ -642,6 +642,7 @@ const bindGroup1 = device.createBindGroup({
 // let objectLoader = new ObjLoader();
 let currObjFile = '';
 let bunny = '';
+let room = '';
 async function load(filePath) {
 
   const resp = await fetch(filePath)
@@ -657,11 +658,11 @@ async function load(filePath) {
   }
   return file;
 }
-async function loadAndParseObject(filePath) {
+async function loadAndParseObject(filePath, obj) {
   try {
     const fileContents = await load(filePath);
     currObjFile = new OBJFile(fileContents);
-    bunny = currObjFile.parse();
+    obj = currObjFile.parse();
     // const bunnyVert = new Float32Array(bunny.models[0].vertices);
     // bunny.models[0].vertices = bunnyVert;
     // //console.log("bunny.models[0].vertices", bunny.models[0].vertices);
@@ -669,13 +670,14 @@ async function loadAndParseObject(filePath) {
     // bunny.models[0].vertexNormals = bunnyNorm;
     // const bunnyTexCoord = new Float32Array(bunny.models[0].textureCoords);
     // bunny.models[0].textureCoords = bunnyTexCoord;
-    const bunnyIndex = new Uint32Array(bunny.models[0].indices);
-    bunny.models[0].indices = bunnyIndex;
+    const bunnyIndex = new Uint32Array(obj.models[0].indices);
+    obj.models[0].indices = bunnyIndex;
     // const bunnyNormalIndex = new Uint32Array(bunny.models[0].normalIndices);
     // bunny.models[0].normalIndices = bunnyNormalIndex;
     // const bunnyTexIndex = new Uint32Array(bunny.models[0].textureIndices);
     // bunny.models[0].textureIndices = bunnyTexIndex;
     // console.log("texcoords", bunny.models[0].textureCoords);
+    return obj;
   } catch (error) {
     console.error('Error loading or parsing object:', error);
   }
@@ -683,13 +685,16 @@ async function loadAndParseObject(filePath) {
 
 // async obj load
 (async () => {
-  await loadAndParseObject('./bunny_uv.obj'); // TODO look into using this instead: https://github.com/WesUnwin/obj-file-parser/blob/master/src/OBJFile.js
+  bunny = await loadAndParseObject('./bunny_uv.obj', bunny); // TODO look into using this instead: https://github.com/WesUnwin/obj-file-parser/blob/master/src/OBJFile.js
   console.log('Loading and parsing of obj complete.');
   console.log(bunny);
+  room = await loadAndParseObject('./test_gallery_cube.obj', room);
+  console.log('Loading and parsing of obj complete.');
+  console.log(room);
 
   createRenderable(renderablesArray, bunny, mArray[0], texBuffer);
   createRenderable(renderablesArray, bunny, mArray[1], texBuffer1);
-  createRenderable(renderablesArray, bunny, mArray[2], texBuffer);
+  createRenderable(renderablesArray, room, mArray[0], texBuffer);
   // createRenderable(renderablesArray, bunny, mArray[3]);
   // createRenderable(renderablesArray, bunny, mArray[4]);
   // createRenderable(renderablesArray, bunny, mArray[5]);
