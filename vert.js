@@ -17,12 +17,7 @@ fn main(
   //@builtin(vertex_index) VertexIndex: u32
 ) -> VertexOutput {
   var output : VertexOutput;
-  let test = m;
-  let scale = mat4x4f(4.0, 0.0, 0.0, 0.0,
-                      0.0, 4.0, 0.0, 0.0,
-                      0.0, 0.0, 4.0, 0.0,
-                      0.0, 0.0, 0.0, 1.0);
-  output.Position = vp * scale * m * inPosition;
+  output.Position = vp * m * inPosition;
   output.fragPos = m * inPosition;
   output.norm = inNormal;
   output.UV = inUV;
