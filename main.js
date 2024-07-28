@@ -220,6 +220,45 @@ function mouseMovement(event) {
 }
 document.addEventListener("mousemove", mouseMovement);
 
+// mobile touch stuff
+let lastTouchX = 0;
+let lastTouchY = 0;
+let isTouching = false;
+
+function touchStart(event) {
+  if (event.touches.length === 1) {
+    isTouching = true;
+    lastTouchX = event.touches[0].clientX;
+    lastTouchY = event.touches[0].clientY;
+  }
+}
+document.addEventListener("touchstart", touchStart);
+
+function touchMove(event) {
+  if (isTouching) {
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - lastTouchX;
+    const deltaY = touch.clientY - lastTouchY;
+    
+    lookAtPointPhi += deltaY * mSensitivity;
+    if (lookAtPointPhi <= 0.01) {
+      lookAtPointPhi = 0.01;
+    } else if (lookAtPointPhi >= Math.PI - 0.01) {
+      lookAtPointPhi = Math.PI - 0.01;
+    }
+    lookAtPointTheta += deltaX * mSensitivity;
+
+    lastTouchX = touch.clientX;
+    lastTouchY = touch.clientY;
+  }
+}
+document.addEventListener("touchmove", touchMove);
+
+function touchEnd(event) {
+  isTouching = false;
+}
+document.addEventListener("touchend", touchEnd);
+
 context.configure({
   device,
   format: presentationFormat,
@@ -607,7 +646,7 @@ device.queue.copyExternalImageToTexture(
   { texture: texBuffer },
   [imageBitmapTest.width, imageBitmapTest.height]
 );
-const response1 = await fetch('./Original_Doge_meme.jpg');
+const response1 = await fetch('./Atlas_00002.png');
 const imageBitmapTest1 = await createImageBitmap(await response1.blob());
 const texBuffer1 = device.createTexture({
   label: 'tex1',
@@ -660,6 +699,7 @@ let currObjFile = '';
 let bunny = '';
 let room = '';
 let awp = '';
+let castle = '';
 async function load(filePath) {
 
   const resp = await fetch(filePath)
@@ -710,6 +750,8 @@ async function loadAndParseObject(filePath, obj) {
   console.log(room);
   awp =  await loadAndParseObject('./awp.obj', awp);
   console.log(awp);
+  castle =  await loadAndParseObject('Peach_Castle_F1_atlas.obj', castle);
+  console.log(castle);
 
   createRenderable(renderablesArray, bunny, mArray[0], texBuffer);
   createRenderable(renderablesArray, awp, new Float32Array(
@@ -723,6 +765,12 @@ async function loadAndParseObject(filePath, obj) {
     [ 1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
+      0, 0, 10, 1]), texBuffer1);
+  createRenderable(renderablesArray, castle, 
+    new Float32Array(
+    [ 100, 0, 0, 0,
+      0, 100, 0, 0,
+      0, 0, 100, 0,
       0, 0, 10, 1]), texBuffer1);
   // createRenderable(renderablesArray, bunny, mArray[3]);
   // createRenderable(renderablesArray, bunny, mArray[4]);

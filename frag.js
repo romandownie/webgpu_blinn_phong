@@ -10,7 +10,7 @@ let frag_wgsl = `
 @fragment
 fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>, @location(2) UV: vec2<f32>) -> @location(0) vec4f {
   let texAlbedo = textureSample(myTexture, mySampler, UV);
-  let testLight = vec4f(0.0, 5.0, 5.0, 1.0);
+  let testLight = vec4f(-150.0, 50.0, 20.0, 1.0);
 
   let normal = norm; //normal hard coded as straight up right now
 
@@ -22,12 +22,12 @@ fn main(@location(0) fragPos: vec4<f32>, @location(1) norm: vec3<f32>, @location
 
   let distanceSqr = pow(length(lightDirVec), 2.0);
   let intensity = max(dot(normal, lightDirN), 0.0);
-  //let diffuse = vec3f(0.9, 0.1, 0.1) * intensity * (20/distanceSqr);
-  let diffuse = texAlbedo.xyz * intensity * (20/distanceSqr);
+  //let diffuse = vec3f(0.9, 0.1, 0.1) * intensity * (2000/distanceSqr);
+  let diffuse = texAlbedo.xyz * intensity * (2000/distanceSqr);
 
   // specular might have to fall off with distance
   let spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0); // 32.0 is shininess here
-  let specular = vec3f(1.0,1.0,1.0) * (20/distanceSqr) * spec; //hardcoded white
+  let specular = vec3f(1.0,1.0,1.0) * (2000/distanceSqr) * spec; //hardcoded white
 
   //let ambient = vec4f(vec3f(0.2, 0.02, 0.02), 1.0); 
   let ambient = vec4f(texAlbedo.xyz * 0.2, 1.0); 
