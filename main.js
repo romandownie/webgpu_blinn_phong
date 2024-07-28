@@ -6,6 +6,7 @@ import {
 } from 'https://wgpu-matrix.org/dist/3.x/wgpu-matrix.module.min.js'; // TODO, try to import this from node
 import ObjLoader from './load_obj.js';
 import OBJFile from './OBJFile.js';
+import JoyStick from './joy.js';
 
 
 //// TODO TODO CURRENTLY WORKING ON RENDERING MULTIPLE MESHES USING DIFFERENT BINDGROUPS
@@ -221,6 +222,9 @@ function mouseMovement(event) {
 document.addEventListener("mousemove", mouseMovement);
 
 // mobile touch stuff
+//joystick
+var joy = new JoyStick('joyDiv');
+console.log(joy.GetX());
 let lastTouchX = 0;
 let lastTouchY = 0;
 let isTouching = false;
@@ -235,7 +239,7 @@ function touchStart(event) {
 document.addEventListener("touchstart", touchStart);
 
 function touchMove(event) {
-  if (isTouching) {
+  if (isTouching && joy.GetX() == 0 && joy.GetY() == 0) {
     const touch = event.touches[0];
     const deltaX = touch.clientX - lastTouchX;
     const deltaY = touch.clientY - lastTouchY;
@@ -258,6 +262,8 @@ function touchEnd(event) {
   isTouching = false;
 }
 document.addEventListener("touchend", touchEnd);
+
+
 
 context.configure({
   device,
@@ -872,20 +878,37 @@ function frame() {
     //vec3.add(vec3.negate(rightVector), lookAtPoint, lookAtPoint);
     //console.log(rightVector);
   }
+  //joystick
+  console.log("joy: ", joy.GetX(), joy.GetY());
+  if (joy.GetY() > 30) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], forwardVector, forwardVector);
+    vec3.add(forwardVector, cameraPos, cameraPos);
+  } else if (joy.GetY() < -30) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], forwardVector, forwardVector);
+    vec3.subtract(cameraPos, forwardVector, cameraPos);
+  }  
+  if (joy.GetX() > 30) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], rightVector, rightVector);
+    vec3.add(vec3.negate(rightVector), cameraPos, cameraPos);
+  } else if (joy.GetX() < -30) {
+    vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], rightVector, rightVector);
+    vec3.add(rightVector, cameraPos, cameraPos);
+  }
 
   // handle mouse input
 
-  //theta 0 -> 2PI, phi 0 -> PI, technically rho is involved but it's one here x=ρsinϕcosθ y=ρcosϕ z=ρsinϕsinθ
-  // 0 is up, pi is down
-  //lookAtPointTheta += 0.003;
-  //lookAtPointPhi += 0.003;
-  lookAtPointTheta = lookAtPointTheta % (Math.PI*2);
-  lookAtPointPhi = Math.min(lookAtPointPhi, Math.PI);
-  lookAtPointPhi = Math.max(lookAtPointPhi, 0);
-  //console.log(lookAtPointTheta);
-  //lookAtPointPhi = Math.PI/13;
-  let tempVec =vec3.normalize([Math.sin(lookAtPointPhi)*Math.cos(lookAtPointTheta), Math.cos(lookAtPointPhi), Math.sin(lookAtPointPhi)*Math.sin(lookAtPointTheta)]);
-  vec3.add(cameraPos, (tempVec), lookAtPoint);
+    //theta 0 -> 2PI, phi 0 -> PI, technically rho is involved but it's one here x=ρsinϕcosθ y=ρcosϕ z=ρsinϕsinθ
+    // 0 is up, pi is down
+    //lookAtPointTheta += 0.003;
+    //lookAtPointPhi += 0.003;
+    lookAtPointTheta = lookAtPointTheta % (Math.PI*2);
+    lookAtPointPhi = Math.min(lookAtPointPhi, Math.PI);
+    lookAtPointPhi = Math.max(lookAtPointPhi, 0);
+    //console.log(lookAtPointTheta);
+    //lookAtPointPhi = Math.PI/13;
+    let tempVec =vec3.normalize([Math.sin(lookAtPointPhi)*Math.cos(lookAtPointTheta), Math.cos(lookAtPointPhi), Math.sin(lookAtPointPhi)*Math.sin(lookAtPointTheta)]);
+    vec3.add(cameraPos, (tempVec), lookAtPoint);
+  
   //console.log((tempVec));
   //console.log(lookAtPoint);
 
