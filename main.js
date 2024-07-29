@@ -86,7 +86,7 @@ function combineVertNormalArr(vert, normal, tex, vertIndices, normalIndices, tex
     // dest[i*6+4] = normal[i*3+1];
     // dest[i*6+5] = normal[i*3+2];
   }
-  console.log("newArray: ", dest);
+  //console.log("newArray: ", dest);
   return dest;
 }
 
@@ -95,7 +95,7 @@ let wDown = false;
 let aDown = false;
 let sDown = false;
 let dDown = false;
-let lookAtPointTheta = Math.PI/2.0;
+let lookAtPointTheta = 2.0*Math.PI/2.0;
 let lookAtPointPhi = Math.PI/2.0;
 let mSensitivity = 0.003;
 let mouseClickDown = false;
@@ -279,6 +279,16 @@ const depthTexture = device.createTexture({ // depth buffer
   usage: GPUTextureUsage.RENDER_ATTACHMENT,
 });
 
+// light class
+const Light = class {
+  constructor() {
+    this.bindGroup;
+    //this.pos; //position
+    //color
+    //intensity
+  }
+}
+
 // renderable class
 const Renderable = class {
   constructor() {
@@ -317,11 +327,6 @@ const perspective =  mat4.perspective(
 //const view = mat4.inverse(camera);
 let vp = mat4.multiply(perspective, camera);
 //console.log(vp);
-
-
-const lightPos = [
-  343.0, 548.8, 227.0, 0.0,
-];
 
 
 
@@ -561,11 +566,28 @@ const bindGroup1Layout = device.createBindGroupLayout({
     },
   ]
 });
+const bindGroup2Layout = device.createBindGroupLayout({
+  // lights
+  entries: [
+    {
+      binding: 0, 
+      visibility: GPUShaderStage.FRAGMENT,
+      buffer: {},
+    },
+    // {
+    //   binding: 1, 
+    //   visibility: GPUShaderStage.FRAGMENT,
+    //   buffer: {},
+    // },
+    
+  ]
+});
 
 const pipelineLayout = device.createPipelineLayout({
   bindGroupLayouts: [
     bindGroupLayout, //group(0)
     bindGroup1Layout, //group(1)
+    bindGroup2Layout, //group(2)
   ]
 })
 
@@ -698,6 +720,68 @@ const bindGroup1 = device.createBindGroup({
     {binding: 2, resource: texBuffer.createView()},
   ]
 });
+//lights bindgroup
+// lights list
+// TODO gonna try just making a big array for now
+const lightPos = new Float32Array([ //temp main testing light
+  -200.0, 30.0, -100.0, 1.0,
+  -200.0, 30.0, 100.0, 1.0, //testing different method
+  -140.0, 50.0, 0.0, 1.0, //testing different method
+  
+]);
+const lightPos1 = new Float32Array([ //temp main testing light
+  -150.0, 10.0, 20.0, 1.0,
+]);
+
+const lightBuffer = device.createBuffer({
+  label: 'light buffer',
+  size: lightPos.byteLength,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(lightBuffer, 0, lightPos);
+
+const lightCountData = new Uint32Array([2]);
+const lightCountBuffer = device.createBuffer({
+  label: 'lightCountBuffer',
+  size: lightCountData.byteLength, //uint32
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+
+//device.queue.writeBuffer(lightCountBuffer, 0, lightCountData[0]); //hardcoding it here
+const lightBindGroup = device.createBindGroup({
+  label: 'light bindGroup 0',
+  layout: bindGroup2Layout,
+  entries: [
+    {binding: 0, resource: {buffer: lightBuffer}},
+    //{binding: 1, resource: {buffer: lightCountBuffer}}
+  ]
+});
+
+const lightBuffer1 = device.createBuffer({
+  label: 'light buffer',
+  size: lightPos1.byteLength,
+  usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+});
+device.queue.writeBuffer(lightBuffer1, 0, lightPos1);
+const lightBindGroup1 = device.createBindGroup({
+  label: 'light bindGroup 1',
+  layout: bindGroup2Layout,
+  entries: [
+    {binding: 0, resource: {buffer: lightBuffer1}}
+  ]
+});
+
+
+
+let lights = [];
+let light0 = new Light();
+light0.bindGroup = lightBindGroup;
+let light1 = new Light();
+light1.bindGroup = lightBindGroup1;
+lights.push(light0);
+lights.push(light1);
+
+
 //// TODO obj testing
 
 // let objectLoader = new ObjLoader();
@@ -750,28 +834,33 @@ async function loadAndParseObject(filePath, obj) {
 (async () => {
   bunny = await loadAndParseObject('./bunny_uv.obj', bunny); // TODO look into using this instead: https://github.com/WesUnwin/obj-file-parser/blob/master/src/OBJFile.js
   console.log('Loading and parsing of obj complete.');
-  console.log(bunny);
+  //console.log(bunny);
   room = await loadAndParseObject('./test_gallery_cube.obj', room);
   console.log('Loading and parsing of obj complete.');
-  console.log(room);
+  //console.log(room);
   awp =  await loadAndParseObject('./awp.obj', awp);
-  console.log(awp);
+  //console.log(awp);
   castle =  await loadAndParseObject('Peach_Castle_F1_atlas.obj', castle);
-  console.log(castle);
+  //console.log(castle);
 
-  createRenderable(renderablesArray, bunny, mArray[0], texBuffer);
-  createRenderable(renderablesArray, awp, new Float32Array(
-    [ Math.cos(Math.PI / 4)*0.2, 0, -Math.sin(Math.PI / 4)*0.2, 0,
-      0, 0.2, 0, 0,
-      Math.sin(Math.PI / 4)*0.2, 0, Math.cos(Math.PI / 4)*0.2, 0,
-      2, 2, 0, 1]
-  ), texBuffer2);
-  createRenderable(renderablesArray, room, 
+  createRenderable(renderablesArray, bunny, 
     new Float32Array(
-    [ 1, 0, 0, 0,
+      [  Math.cos(2*Math.PI / 4)*5, 0, -Math.sin(2*Math.PI / 4)*5, 0,
+        0, 5, 0, 0,
+        Math.sin(2*Math.PI / 4)*5, 0, Math.cos(2*Math.PI / 4)*5, 0,
+        -240, 40, 35, 1]), texBuffer);
+  createRenderable(renderablesArray, awp, new Float32Array(
+    [ Math.cos(1*Math.PI / 4), 0, -Math.sin(1*Math.PI / 4), 0,
       0, 1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 10, 1]), texBuffer1);
+      Math.sin(1*Math.PI / 4), 0, Math.cos(1*Math.PI / 4), 0,
+      -245, 40, -45, 1]
+  ), texBuffer2);
+  // createRenderable(renderablesArray, room, 
+  //   new Float32Array(
+  //   [ 1, 0, 0, 0,
+  //     0, 1, 0, 0,
+  //     0, 0, 1, 0,
+  //     0, 0, 10, 1]), texBuffer1);
   createRenderable(renderablesArray, castle, 
     new Float32Array(
     [ 100, 0, 0, 0,
@@ -879,7 +968,7 @@ function frame() {
     //console.log(rightVector);
   }
   //joystick
-  console.log("joy: ", joy.GetX(), joy.GetY());
+  //console.log("joy: ", joy.GetX(), joy.GetY());
   if (joy.GetY() > 30) {
     vec3.multiply([moveSpeed*deltaTime, moveSpeed*deltaTime, moveSpeed*deltaTime], forwardVector, forwardVector);
     vec3.add(forwardVector, cameraPos, cameraPos);
@@ -948,14 +1037,17 @@ function frame() {
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setBindGroup(0, bindGroup);
+  //for (const light of lights) {
+    passEncoder.setBindGroup(2, lights[0].bindGroup); // temp light buffer binding
 
-  for (const renderable of renderablesArray) {
-    passEncoder.setVertexBuffer(0, renderable.vertNorm);
-    //passEncoder.setIndexBuffer(renderable.indices, "uint16");
-    passEncoder.setBindGroup(1, renderable.bindGroup);
-    //passEncoder.drawIndexed(renderable.numDrawCalls); 
-    passEncoder.draw(renderable.numDrawCalls); //normals might still be wrong, draw calls equals faces count * 3
-  }
+    for (const renderable of renderablesArray) {
+      passEncoder.setVertexBuffer(0, renderable.vertNorm);
+      //passEncoder.setIndexBuffer(renderable.indices, "uint16");
+      passEncoder.setBindGroup(1, renderable.bindGroup);
+      //passEncoder.drawIndexed(renderable.numDrawCalls); 
+      passEncoder.draw(renderable.numDrawCalls); //normals might still be wrong, draw calls equals faces count * 3
+    }
+  //}
   passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);
